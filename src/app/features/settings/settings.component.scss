@@ -1,0 +1,29 @@
+.page {
+  max-width: 50rem;
+  margin: auto;
+  padding: 2rem 1rem;
+}
+.page section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+.page h2 {
+  margin-top: 0;
+}
+fieldset {
+  border: 0;
+  padding: 0;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+label {
+  text-transform: capitalize;
+}
+.danger {
+  background: #b91c1c;
+  color: #fff;
+}

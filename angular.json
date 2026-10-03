@@ -29,6 +29,11 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "ndt7-*-worker.js",
+                "input": "node_modules/@m-lab/ndt7/src",
+                "output": "/"
               }
             ],
             "styles": ["src/styles.scss"]

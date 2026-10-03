@@ -1,0 +1,53 @@
+<main class="lock-page">
+  <section class="lock-card" aria-labelledby="lock-title">
+    <img ngSrc="ping-metric.png" width="80" height="80" priority alt="PingMetric icon" />
+    <p class="eyebrow">Private network diagnostics</p>
+    <h1 id="lock-title">PingMetric</h1>
+    <p>Measure end-to-end Internet performance and inspect browser-visible network details.</p>
+    @if (!auth.configured()) {
+      <p class="notice" role="alert">
+        Configure <code>passwordHash</code> in the selected environment file before unlocking
+        PingMetric.
+      </p>
+    } @else {
+      <form (submit)="$event.preventDefault(); unlock()">
+        <label for="username">Username</label>
+        <input
+          id="username"
+          type="text"
+          [value]="username()"
+          (input)="setUsername($event)"
+          autocomplete="username"
+          required
+        />
+        <label for="password">Password</label>
+        <div class="password-row">
+          <input
+            id="password"
+            [type]="visible() ? 'text' : 'password'"
+            [value]="password()"
+            (input)="setPassword($event)"
+            autocomplete="current-password"
+            required
+          /><button
+            type="button"
+            class="quiet visibility-toggle"
+            [attr.aria-label]="visible() ? 'Hide password' : 'Show password'"
+            [attr.title]="visible() ? 'Hide password' : 'Show password'"
+            (click)="visible.set(!visible())"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true">{{
+              visible() ? 'visibility_off' : 'visibility'
+            }}</span>
+          </button>
+        </div>
+        @if (invalid()) {
+          <p class="error" role="alert">Enter a username and the correct password to continue.</p>
+        }
+        <button class="primary icon-button" type="submit" [disabled]="!canUnlock()">
+          <span class="material-symbols-rounded" aria-hidden="true">lock_open</span> Unlock
+        </button>
+      </form>
+    }
+  </section>
+</main>

@@ -1,0 +1,16 @@
+.page {
+  max-width: 50rem;
+  margin: auto;
+  padding: 2rem 1rem;
+  line-height: 1.6;
+}
+.page section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+.page h2 {
+  margin-top: 0;
+}
