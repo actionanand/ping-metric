@@ -15,6 +15,10 @@ export const environment: AppEnvironment = {
     // Only use a key explicitly intended for public browser clients.
     intelligenceApiKey: '',
   },
-  latency: { probeUrl: 'https://www.google.com/generate_204', attempts: 5, timeoutMs: 5000 },
+  latency: {
+    probeUrl: 'https://speed.cloudflare.com/__down?bytes=0',
+    attempts: 5,
+    timeoutMs: 5000,
+  },
   webrtc: { stunUrls: ['stun:stun.l.google.com:19302'] },
 };
