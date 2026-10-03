@@ -1,0 +1,42 @@
+<main class="page">
+  <a routerLink="/">← Dashboard</a>
+  <h1>Test history</h1>
+  <p>Completed normalized results are stored only in this browser.</p>
+  @if (history.entries().length) {
+    <section class="summary">
+      <span
+        >Average download
+        <strong>{{ history.summary().averageDownload | number: '1.1-1' }} Mbps</strong></span
+      ><span
+        >Best download
+        <strong>{{ history.summary().bestDownload | number: '1.1-1' }} Mbps</strong></span
+      ><span
+        >Lowest latency
+        <strong>{{ history.summary().lowestLatency | number: '1.0-0' }} ms</strong></span
+      >
+    </section>
+    <button class="danger" (click)="clear()">Clear history</button>
+    <div class="entries">
+      @for (entry of history.entries(); track entry.id) {
+        <article>
+          <strong>{{ entry.timestamp | date: 'medium' }}</strong>
+          <p>
+            ↓ {{ entry.download.mbps | number: '1.1-1' }} Mbps · ↑
+            {{ entry.upload.mbps | number: '1.1-1' }} Mbps ·
+            {{ entry.latency?.medianMs | number: '1.0-0' }} ms
+          </p>
+          <p>
+            {{
+              entry.intelligence?.organization ||
+                entry.ip?.default?.value?.address ||
+                'Network details unavailable'
+            }}
+          </p>
+          <button class="quiet" (click)="history.remove(entry.id)">Delete</button>
+        </article>
+      }
+    </div>
+  } @else {
+    <p class="empty">No completed speed tests yet.</p>
+  }
+</main>

@@ -1,0 +1,239 @@
+<header class="topbar">
+  <a class="brand" routerLink="/"
+    ><img ngSrc="ping-metric.png" width="36" height="36" alt="" /><span>PingMetric</span></a
+  >
+  <nav aria-label="Primary">
+    <a routerLink="/history"
+      ><span class="material-symbols-rounded" aria-hidden="true">history</span>History</a
+    ><a routerLink="/settings"
+      ><span class="material-symbols-rounded" aria-hidden="true">settings</span>Settings</a
+    ><a routerLink="/about"
+      ><span class="material-symbols-rounded" aria-hidden="true">info</span>About</a
+    ><button class="quiet nav-lock" (click)="lock()">
+      <span class="material-symbols-rounded" aria-hidden="true">lock</span>Lock
+    </button>
+  </nav>
+</header>
+<main>
+  <section class="hero" aria-labelledby="dashboard-title">
+    <div>
+      <p class="eyebrow">
+        {{ network.info().online ? 'Online' : 'Offline' }} · Browser-based diagnostics
+      </p>
+      <h1 id="dashboard-title">Understand your connection.</h1>
+      <p>
+        Measured end-to-end Internet performance — not your ISP package’s theoretical line speed.
+      </p>
+    </div>
+    <button
+      class="primary test icon-button"
+      [disabled]="
+        !network.info().online ||
+        [
+          'preparing',
+          'finding-server',
+          'measuring-latency',
+          'download',
+          'upload',
+          'finalizing',
+        ].includes(speed.phase())
+      "
+      (click)="requestTest()"
+    >
+      <span class="material-symbols-rounded" aria-hidden="true">{{
+        speed.phase() === 'complete' ? 'refresh' : 'speed'
+      }}</span
+      >{{ speed.phase() === 'complete' ? 'Test Again' : 'Start Test' }}
+    </button>
+  </section>
+  @if (showDisclosure()) {
+    <section class="disclosure" role="dialog" aria-labelledby="disclosure-title">
+      <h2 id="disclosure-title">Before measuring with M-Lab</h2>
+      <p>
+        Speed testing transfers a meaningful amount of data. M-Lab receives measurement information,
+        including your public IP, necessary to run and publish its network measurement service.
+      </p>
+      <p>
+        <a href="https://www.measurementlab.net/privacy/" target="_blank" rel="noreferrer"
+          >Read M-Lab’s data policy</a
+        >.
+      </p>
+      <button class="primary" (click)="acceptDisclosure()">Accept and start test</button
+      ><button class="quiet" (click)="showDisclosure.set(false)">Not now</button>
+    </section>
+  }
+  @if (speed.phase() !== 'idle' && speed.phase() !== 'complete') {
+    <section class="status" aria-live="polite">
+      <strong>{{ speed.phase().replace('-', ' ') }}</strong>
+      @if (speed.phase() === 'download' || speed.phase() === 'upload') {
+        —
+        {{
+          speed.phase() === 'download'
+            ? speed.download().liveMbps
+            : (speed.upload().liveMbps | number: '1.1-1')
+        }}
+        Mbps
+      }
+      <button class="quiet" (click)="speed.cancel()">Cancel Test</button>
+    </section>
+  }
+  @if (speed.error()) {
+    <p class="error" role="alert">{{ speed.error() }}</p>
+  }
+  <section class="metrics" aria-label="Speed test results">
+    <article>
+      <span>Download</span
+      ><strong>
+        @if (speed.download().mbps !== undefined) {
+          {{ speed.download().mbps | number: '1.1-1' }} <small>Mbps</small>
+        } @else {
+          —
+        }
+      </strong>
+      <p>Transferred {{ speed.download().bytes || 0 }} bytes</p>
+    </article>
+    <article>
+      <span>Upload</span
+      ><strong>
+        @if (speed.upload().mbps !== undefined) {
+          {{ speed.upload().mbps | number: '1.1-1' }} <small>Mbps</small>
+        } @else {
+          —
+        }
+      </strong>
+      <p>Transferred {{ speed.upload().bytes || 0 }} bytes</p>
+    </article>
+    <article>
+      <span>HTTP/Application latency</span
+      ><strong>
+        @if (latency()?.medianMs !== undefined) {
+          {{ latency()?.medianMs | number: '1.0-0' }} <small>ms</small>
+        } @else {
+          —
+        }
+      </strong>
+      <p>
+        Jitter
+        @if (latency()?.jitterMs !== undefined) {
+          {{ latency()?.jitterMs | number: '1.0-0' }} ms
+        } @else {
+          —
+        }
+      </p>
+    </article>
+    <article>
+      <span>TCP retransmission estimate</span
+      ><strong>
+        @if (retransmission() !== undefined) {
+          {{ retransmission() | number: '1.1-1' }}%
+        } @else {
+          Not available
+        }
+      </strong>
+      <p>Indirect signal, not exact packet loss.</p>
+    </article>
+  </section>
+  <section class="actions">
+    <button class="secondary icon-button" (click)="refreshNetwork()">
+      <span class="material-symbols-rounded" aria-hidden="true">sync</span>Refresh Network Info</button
+    ><button class="secondary icon-button" (click)="testWebRtc()">
+      <span class="material-symbols-rounded" aria-hidden="true">privacy_tip</span>Run WebRTC privacy
+      test
+    </button>
+  </section>
+  <div class="grid">
+    <section class="card" aria-labelledby="ip-title">
+      <h2 id="ip-title">IP Addresses</h2>
+      <p>
+        Protocol availability: <strong>{{ ips()?.protocol || 'Loading…' }}</strong>
+      </p>
+      <dl>
+        <dt>Public IP</dt>
+        <dd>
+          {{ ips()?.default?.value?.address || ips()?.default?.message || 'Unavailable' }}
+          <button class="copy" (click)="copy(ips()?.default?.value?.address)">Copy</button>
+        </dd>
+        <dt>IPv4</dt>
+        <dd>
+          {{ ips()?.ipv4?.value?.address || ips()?.ipv4?.state || 'Unavailable' }}
+          <button class="copy" (click)="copy(ips()?.ipv4?.value?.address)">Copy</button>
+        </dd>
+        <dt>IPv6</dt>
+        <dd>
+          {{ ips()?.ipv6?.value?.address || ips()?.ipv6?.state || 'Unavailable' }}
+          <button class="copy" (click)="copy(ips()?.ipv6?.value?.address)">Copy</button>
+        </dd>
+      </dl>
+    </section>
+    <section class="card" aria-labelledby="location-title">
+      <h2 id="location-title">Location &amp; network</h2>
+      @if (intelligence()) {
+        <p>
+          <strong>{{ intelligence()?.organization || 'Network operator unavailable' }}</strong>
+        </p>
+        <p>
+          {{ intelligence()?.city || 'Unknown city' }},
+          {{ intelligence()?.region || intelligence()?.country || 'Unknown region' }}
+        </p>
+        <p>ASN: {{ intelligence()?.asn || 'Not available' }}</p>
+        <p class="muted">Approximate IP-based location; it is not a physical address.</p>
+      } @else {
+        <p>IP intelligence is unavailable. Network measurements still work independently.</p>
+      }
+    </section>
+    <section class="card" aria-labelledby="privacy-title">
+      <h2 id="privacy-title">Security &amp; privacy</h2>
+      <dl>
+        <dt>HTTPS / secure context</dt>
+        <dd>{{ network.info().secureContext ? 'Available' : 'Not available' }}</dd>
+        <dt>Web Crypto</dt>
+        <dd>{{ network.info().webCrypto ? 'Available' : 'Unavailable' }}</dd>
+        <dt>WebRTC</dt>
+        <dd>{{ network.info().webRtc ? 'Supported' : 'Unsupported' }}</dd>
+        <dt>DNS leak test</dt>
+        <dd>Not available in browser-only mode</dd>
+      </dl>
+      <p class="muted">
+        Browser apps cannot read TLS ciphers, local DNS, MAC addresses, router state, or scan your
+        network.
+      </p>
+    </section>
+    <section class="card" aria-labelledby="webrtc-title">
+      <h2 id="webrtc-title">WebRTC exposure</h2>
+      <p>
+        {{ rtc()?.outcome || 'Run the bounded test to inspect browser-exposed ICE candidates.' }}
+      </p>
+      @if (rtc()?.candidates?.length) {
+        <ul>
+          @for (candidate of rtc()?.candidates ?? []; track candidate.address + candidate.type) {
+            <li>
+              {{ candidate.type }} · {{ candidate.address }} ·
+              {{ candidate.protocol || 'protocol unknown' }}
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+  <section class="card technical">
+    <h2>Technical details</h2>
+    <p>
+      Measurement server:
+      {{ speed.server()?.hostname || speed.server()?.endpoint || 'Available after a test' }}
+    </p>
+    <p>
+      Address observed by measurement server:
+      {{ speed.server()?.observedClientAddress || 'Not available' }}
+    </p>
+    <p>
+      Browser estimate: {{ network.info().effectiveType || 'Not exposed' }}
+      @if (network.info().downlink) {
+        · {{ network.info().downlink }} Mbps estimate
+      }
+      @if (network.info().rtt) {
+        · {{ network.info().rtt }} ms RTT estimate
+      }
+    </p>
+    <p class="muted">Application/TCP round-trip time; not raw ICMP ping.</p>
+  </section>
+</main>

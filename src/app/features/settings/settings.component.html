@@ -1,0 +1,37 @@
+<main class="page">
+  <a routerLink="/">← Dashboard</a>
+  <h1>Settings</h1>
+  <section>
+    <h2>Appearance</h2>
+    <fieldset>
+      <legend>Theme</legend>
+      @for (choice of ['system', 'light', 'dark']; track choice) {
+        <label
+          ><input
+            type="radio"
+            name="theme"
+            [checked]="theme.preference() === choice"
+            (change)="setTheme(choice)"
+          />
+          {{ choice }}</label
+        >
+      }
+    </fieldset>
+  </section>
+  <section>
+    <h2>History</h2>
+    <p>Results are stored locally in this browser only.</p>
+    <button class="danger" (click)="clearHistory()">Clear history</button>
+  </section>
+  <section>
+    <h2>Privacy</h2>
+    <p>
+      Review M-Lab’s
+      <a href="https://www.measurementlab.net/privacy/" target="_blank" rel="noreferrer"
+        >data policy</a
+      >
+      before test runs. You can clear its stored disclosure consent and lock this session.
+    </p>
+    <button class="secondary" (click)="clearLocalPrivacyState()">Clear consent and lock</button>
+  </section>
+</main>

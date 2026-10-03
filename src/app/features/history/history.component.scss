@@ -1,0 +1,36 @@
+.page {
+  max-width: 50rem;
+  margin: auto;
+  padding: 2rem 1rem;
+}
+.summary,
+.entries {
+  display: grid;
+  gap: 1rem;
+}
+.summary {
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  margin: 1rem 0;
+}
+.summary span,
+article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+.summary strong {
+  display: block;
+  margin-top: 0.4rem;
+}
+.entries {
+  margin-top: 1rem;
+}
+article p,
+.empty {
+  color: var(--muted);
+}
+.danger {
+  background: #b91c1c;
+  color: #fff;
+}
