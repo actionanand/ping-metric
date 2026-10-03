@@ -5,16 +5,10 @@ import { AuthService } from '../../core/services/auth.service';
 import { HistoryService } from '../../core/services/history.service';
 import { IpAddressService } from '../../core/services/ip-address.service';
 import { IpIntelligenceService } from '../../core/services/ip-intelligence.service';
-import { LatencyService } from '../../core/services/latency.service';
 import { NetworkInfoService } from '../../core/services/network-info.service';
 import { SpeedTestService } from '../../core/services/speed-test.service';
 import { WebRtcLeakService } from '../../core/services/webrtc-leak.service';
-import type {
-  IpAddresses,
-  IpIntelligence,
-  LatencyResult,
-  WebRtcLeakResult,
-} from '../../core/models/app.models';
+import type { IpAddresses, IpIntelligence, WebRtcLeakResult } from '../../core/models/app.models';
 import { retransmissionPercent } from '../../shared/utils/network.utils';
 
 @Component({
@@ -29,13 +23,11 @@ export class DashboardComponent {
   protected readonly network = inject(NetworkInfoService);
   private readonly ipService = inject(IpAddressService);
   private readonly intelligenceService = inject(IpIntelligenceService);
-  private readonly latencyService = inject(LatencyService);
   private readonly history = inject(HistoryService);
   private readonly webrtc = inject(WebRtcLeakService);
   private readonly router = inject(Router);
   protected readonly ips = signal<IpAddresses | undefined>(undefined);
   protected readonly intelligence = signal<IpIntelligence | undefined>(undefined);
-  protected readonly latency = signal<LatencyResult | undefined>(undefined);
   protected readonly rtc = signal<WebRtcLeakResult | undefined>(undefined);
   protected readonly consent = signal(
     localStorage.getItem('ping-metric.mlab-consent') === 'accepted',
@@ -68,13 +60,8 @@ export class DashboardComponent {
   }
   async startTest(): Promise<void> {
     if (!this.network.info().online) return;
-    this.speed.reset();
-    this.speed.phase.set('preparing');
-    const latency = await this.latencyService.measure();
-    this.latency.set(latency.value);
     const result = await this.speed.run();
     if (result) {
-      result.latency = latency.value;
       const saved = {
         ...result,
         version: 1 as const,
