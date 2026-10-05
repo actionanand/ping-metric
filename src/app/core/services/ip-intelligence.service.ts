@@ -10,7 +10,12 @@ export class IpIntelligenceService {
     if (environment.ip.intelligenceApiKey)
       url.searchParams.set('key', environment.ip.intelligenceApiKey);
     try {
-      const response = await fetch(url, { cache: 'no-store' });
+      let response = await fetch(url, { cache: 'no-store' });
+      if (response.status === 429 && url.searchParams.has('key')) {
+        const anonymousUrl = new URL(url);
+        anonymousUrl.searchParams.delete('key');
+        response = await fetch(anonymousUrl, { cache: 'no-store' });
+      }
       const data: unknown = await response.json();
       const value = normalize(data);
       return response.ok && value
