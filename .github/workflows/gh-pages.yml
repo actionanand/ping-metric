@@ -27,6 +27,39 @@ jobs:
         id: package
         run: echo "name=$(node -p "require('./package.json').name")" >> $GITHUB_OUTPUT
 
+      - name: Configure production values
+        env:
+          PASSWORD_HASH: ${{ secrets.PASSWORD_HASH }}
+          IPAPI_IS_KEY: ${{ secrets.IPAPI_IS_KEY }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = 'src/environments/environment.ts';
+          let source = fs.readFileSync(file, 'utf8');
+          const passwordHash = process.env.PASSWORD_HASH;
+          const intelligenceApiKey = process.env.IPAPI_IS_KEY;
+
+          if (!passwordHash || !/^[a-f0-9]{40}$/i.test(passwordHash)) {
+            throw new Error('PASSWORD_HASH must be a 40-character SHA-1 digest');
+          }
+          if (!intelligenceApiKey) {
+            throw new Error('Missing required GitHub secret: IPAPI_IS_KEY');
+          }
+
+          for (const [placeholder, value] of [
+            ['PASSWORD_HASH_PLACEHOLDER', passwordHash],
+            ['IPAPI_IS_PLACEHOLDER', intelligenceApiKey],
+          ]) {
+            const marker = JSON.stringify(placeholder);
+            if (!source.includes(marker)) {
+              throw new Error(`Could not find expected configuration placeholder: ${placeholder}`);
+            }
+            source = source.replace(marker, JSON.stringify(value));
+          }
+
+          fs.writeFileSync(file, source);
+          NODE
+
       - name: Build Angular app for GitHub Pages
         run: npm run build:gh --configuration=production
 

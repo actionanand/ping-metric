@@ -12,7 +12,7 @@ export const environment: AppEnvironment = {
     ipv6Endpoint: 'https://api6.ipify.org?format=json',
     universalEndpoint: 'https://api64.ipify.org?format=json',
     intelligenceEndpoint: 'https://api.ipapi.is',
-    intelligenceApiKey: '',
+    intelligenceApiKey: '', //ipapi.is API key
   },
   latency: {
     probeUrl: 'https://speed.cloudflare.com/__down?bytes=0',
