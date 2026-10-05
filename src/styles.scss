@@ -56,6 +56,13 @@ body {
   background: var(--bg);
   color: var(--text);
 }
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+main {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 a {
   color: var(--accent-strong);
 }
@@ -95,6 +102,19 @@ input {
   color: var(--text);
   border-radius: 0.45rem;
   padding: 0.65rem;
+}
+@media (max-width: 47.99rem) {
+  main.page {
+    padding-block: 1.25rem;
+  }
+  .page > a:first-child {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+  .page button {
+    min-height: 2.75rem;
+  }
 }
 button:focus-visible,
 a:focus-visible,

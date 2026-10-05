@@ -2,7 +2,7 @@
   <a class="brand" routerLink="/"
     ><img ngSrc="ping-metric.png" width="36" height="36" alt="" /><span>PingMetric</span></a
   >
-  <nav aria-label="Primary">
+  <nav class="desktop-nav" aria-label="Primary">
     <a routerLink="/history"
       ><span class="material-symbols-rounded" aria-hidden="true">history</span>History</a
     ><a routerLink="/settings"
@@ -13,7 +13,58 @@
       <span class="material-symbols-rounded" aria-hidden="true">lock</span>Lock
     </button>
   </nav>
+  <button
+    class="quiet menu-button"
+    type="button"
+    aria-label="Open navigation"
+    aria-haspopup="dialog"
+    aria-controls="mobile-navigation"
+    title="Open navigation"
+    (click)="openNavigation()"
+  >
+    <span class="material-symbols-rounded" aria-hidden="true">menu</span>
+  </button>
 </header>
+<dialog
+  #mobileNavigation
+  id="mobile-navigation"
+  class="mobile-navigation"
+  aria-labelledby="navigation-title"
+  (click)="closeNavigationOnBackdrop($event)"
+  (keydown.escape)="closeNavigation()"
+>
+  <div class="drawer-content">
+    <div class="drawer-heading">
+      <h2 id="navigation-title">PingMetric</h2>
+      <button
+        class="quiet drawer-close"
+        type="button"
+        aria-label="Close navigation"
+        title="Close navigation"
+        (click)="closeNavigation()"
+      >
+        <span class="material-symbols-rounded" aria-hidden="true">close</span>
+      </button>
+    </div>
+    <nav aria-label="Mobile primary">
+      <a routerLink="/" aria-current="page" (click)="closeNavigation()">
+        <span class="material-symbols-rounded" aria-hidden="true">dashboard</span>Dashboard
+      </a>
+      <a routerLink="/history" (click)="closeNavigation()">
+        <span class="material-symbols-rounded" aria-hidden="true">history</span>History
+      </a>
+      <a routerLink="/settings" (click)="closeNavigation()">
+        <span class="material-symbols-rounded" aria-hidden="true">settings</span>Settings
+      </a>
+      <a routerLink="/about" (click)="closeNavigation()">
+        <span class="material-symbols-rounded" aria-hidden="true">info</span>About
+      </a>
+      <button class="quiet drawer-lock" type="button" (click)="lock()">
+        <span class="material-symbols-rounded" aria-hidden="true">lock</span>Lock
+      </button>
+    </nav>
+  </div>
+</dialog>
 <main>
   <section class="hero" aria-labelledby="dashboard-title">
     <div>
@@ -157,7 +208,7 @@
     </article>
     <article>
       <span>TCP retransmission estimate</span
-      ><strong>
+      ><strong [class.unavailable]="retransmission() === undefined">
         @if (retransmission() !== undefined) {
           {{ retransmission() | number: '1.1-1' }}%
         } @else {

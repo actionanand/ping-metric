@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { NgOptimizedImage, DecimalPipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -26,6 +26,8 @@ export class DashboardComponent {
   private readonly history = inject(HistoryService);
   private readonly webrtc = inject(WebRtcLeakService);
   private readonly router = inject(Router);
+  protected readonly mobileNavigation =
+    viewChild.required<ElementRef<HTMLDialogElement>>('mobileNavigation');
   protected readonly ips = signal<IpAddresses | undefined>(undefined);
   protected readonly intelligence = signal<IpIntelligence | undefined>(undefined);
   protected readonly rtc = signal<WebRtcLeakResult | undefined>(undefined);
@@ -35,6 +37,15 @@ export class DashboardComponent {
   protected readonly showDisclosure = signal(false);
   constructor() {
     void this.refreshNetwork();
+  }
+  openNavigation(): void {
+    this.mobileNavigation().nativeElement.showModal();
+  }
+  closeNavigation(): void {
+    this.mobileNavigation().nativeElement.close();
+  }
+  closeNavigationOnBackdrop(event: MouseEvent): void {
+    if (event.target === event.currentTarget) this.closeNavigation();
   }
   async refreshNetwork(): Promise<void> {
     const ips = await this.ipService.lookupAll();
@@ -80,6 +91,7 @@ export class DashboardComponent {
     if (value) void navigator.clipboard?.writeText(value);
   }
   async lock(): Promise<void> {
+    this.closeNavigation();
     this.auth.lock();
     await this.router.navigateByUrl('/lock');
   }
