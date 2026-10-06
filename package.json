@@ -29,7 +29,6 @@
     "@angular/platform-browser": "^22.1.0",
     "@angular/router": "^22.1.0",
     "@m-lab/ndt7": "^0.1.5",
-    "@svg-maps/india": "^2.0.0",
     "chart.js": "^4.5.1",
     "chartjs-chart-geo": "^4.3.6",
     "jspdf": "^4.2.1",
