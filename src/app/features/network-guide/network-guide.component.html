@@ -24,18 +24,37 @@
       Download is data arriving at your device: websites, streaming and app or cloud downloads.
       Upload is data leaving it: video calls, backups, file uploads and live streaming.
     </p>
+    <p>
+      <strong>M-Lab</strong> means Measurement Lab, a research project that provides open Internet
+      measurement tools. PingMetric uses its NDT7 service for the dashboard's active download and
+      upload test; the result describes the tested path at that moment, not a guaranteed plan speed.
+    </p>
+    <p>
+      <strong>NDT7</strong> is Network Diagnostic Tool version 7. It transfers test data between
+      your browser and an M-Lab server. This gives an end-to-end throughput estimate; PingMetric
+      displays the result as download and upload speed.
+    </p>
   </section>
   <section id="latency">
     <h2>Latency, ping, jitter and RTT</h2>
     <p>
-      Latency is response time in milliseconds; lower is generally better for browsing, gaming,
-      calls, remote desktops and cloud apps. PingMetric measures browser HTTP/application latency
-      and TCP information where available—not raw ICMP ping, because browser JavaScript cannot send
-      arbitrary ICMP Echo requests.
+      Latency is the time a response takes, shown in milliseconds. Lower latency usually makes
+      browsing, calls, games and remote apps feel more responsive. PingMetric shows the median of
+      browser HTTP/application probes and TCP timing when the browser exposes it.
     </p>
     <p>
-      People often say “ping” for response time; classic ping normally uses ICMP. RTT is device →
-      server → device time. MinRTT is the lowest observed RTT and RTTVar is its variation.
+      <strong>HTTP</strong> (Hypertext Transfer Protocol) is the request-and-response format
+      browsers use to load web resources. <strong>HTTPS</strong> is HTTP protected with encryption
+      and server identity checks. PingMetric's latency probe uses a web request, so it measures the
+      browser's application path rather than every part of the network stack.
+    </p>
+    <p>
+      <strong>RTT</strong> means Round-Trip Time: the time for data to go from your device to a
+      server and for a response to return. <strong>MinRTT</strong> is the minimum TCP round-trip
+      time observed during a transfer; <strong>RTTVar</strong> is TCP's estimate of how much RTT
+      varies. They help describe path delay and stability. NDT7 may include them in the TCP result
+      stored with a test; PingMetric's current dashboard does not display them separately, and they
+      are not the dashboard's HTTP latency sample.
     </p>
     <details id="jitter">
       <summary>Jitter</summary>
@@ -48,60 +67,134 @@
     <details>
       <summary>Loaded latency</summary>
       <p>
-        Idle latency is responsiveness without traffic. A large rise during load can indicate
-        queueing often associated with bufferbloat, but one browser test cannot diagnose it
-        definitively.
+        Loaded latency is response time while a download or upload is using the connection. A large
+        increase can indicate queues building in a modem, router, or network path. This is sometimes
+        called <strong>bufferbloat</strong>: oversized queues add delay even though data is still
+        moving. It matters for calls and games during downloads. PingMetric compares available
+        latency measurements during the test; this is a clue, not a definitive bufferbloat
+        diagnosis.
       </p>
     </details>
+    <p>
+      <strong>ICMP</strong> means Internet Control Message Protocol, a network-layer protocol used
+      for diagnostics and error reports. Classic command-line ping usually sends ICMP Echo requests.
+      Browsers do not let web pages send arbitrary ICMP packets, so PingMetric instead measures
+      HTTP/application latency. The two tests can differ because they use different protocols and
+      paths.
+    </p>
   </section>
   <section id="tcp-retransmission">
     <h2>TCP and retransmission</h2>
     <p>
-      TCP reliably delivers ordered data using acknowledgements, retransmissions and congestion
-      control. PingMetric’s TCP retransmission estimate is
+      <strong>TCP</strong> means Transmission Control Protocol. It delivers data in order and checks
+      receipt, retransmitting data when needed. This reliability is important for web pages and
+      downloads, but retransmissions and congestion can affect throughput. PingMetric uses TCP for
+      the NDT7 transfer and reports its retransmission estimate as
       <code>(bytesRetrans / bytesSent) × 100</code> when those fields exist. It is not exact packet
       loss; a higher value can reflect congestion, Wi-Fi interference, unstable paths or temporary
-      loss.
+      loss. MinRTT and RTTVar, when present in TCP details, describe transfer timing rather than
+      classic ICMP ping.
     </p>
   </section>
   <section id="dual-stack">
     <h2>IP, routing and dual stack</h2>
     <p>
-      IPv4 uses 32-bit addresses such as <code>192.0.2.10</code>; IPv6 uses 128-bit addresses such
-      as <code>2001:db8::1234</code>. A connection can be IPv4 only, IPv6 only, dual stack (both
-      protocols, not two connections), or unknown.
+      <strong>IP</strong> means Internet Protocol. It gives devices addresses and carries packets
+      between networks. PingMetric shows the public addresses its browser checks can reach; it
+      cannot inspect every address inside your home or office network.
     </p>
     <p>
-      A public IP can reveal network ownership and approximate region, not usually a precise home
-      address. VPNs, proxies, mobile and CGNAT complicate interpretation.
+      <strong>IPv4</strong> is Internet Protocol version 4 and uses 32-bit addresses such as
+      <code>192.0.2.10</code>. <strong>IPv6</strong> is Internet Protocol version 6 and uses 128-bit
+      addresses such as <code>2001:db8::1234</code>. IPv6 provides a much larger address space.
+      PingMetric reports whether IPv4, IPv6, or both (dual stack) are reachable from the browser.
     </p>
     <p>
-      ASN means Autonomous System Number (for example AS55836), identifying a routing organization.
-      CIDR such as <code>203.0.113.0/24</code> describes an IP range. RIR means Regional Internet
-      Registry, an organization that allocates number resources.
+      <strong>NAT</strong> (Network Address Translation) lets a router share one public address
+      across devices using private addresses. <strong>CGNAT</strong> (Carrier-Grade NAT) is similar
+      sharing performed by an Internet provider, sometimes for many customers. It can affect inbound
+      connections and makes a public IP identify a shared gateway rather than one device. PingMetric
+      sees the public-facing address, not the private addresses behind NAT.
+    </p>
+    <p>
+      <strong>ASN</strong> means Autonomous System Number. It identifies a network that announces
+      Internet routes, often an ISP or hosting provider; PingMetric shows it in network
+      intelligence. <strong>CIDR</strong> means Classless Inter-Domain Routing. A range such as
+      <code>203.0.113.0/24</code> describes a group of addresses and appears as a route/network
+      detail. <strong>RIR</strong> means Regional Internet Registry, the regional organization
+      responsible for allocating address resources; PingMetric shows the provider-reported RIR when
+      available.
+    </p>
+    <p>
+      <strong>Anycast</strong> means the same IP address is announced from multiple locations, with
+      routing directing traffic to one of them. It can improve reachability and response time;
+      PingMetric may show it as an IP-intelligence classification. A <strong>bogon</strong> is an
+      address range that should not normally appear on the public Internet. A
+      <strong>reserved address</strong> is set aside for special uses, such as private networks or
+      documentation, rather than ordinary public routing. PingMetric can show a bogon/reserved
+      classification, but provider data can be incomplete or mistaken.
     </p>
   </section>
   <section id="webrtc">
     <h2>WebRTC and privacy</h2>
     <p>
-      WebRTC supports browser calls, peer-to-peer data and real-time media. ICE candidates may
-      include host, server-reflexive (srflx), or relay addresses; STUN, TURN and mDNS protections
-      influence what is exposed. An additional public address is not automatically a VPN leak.
+      <strong>WebRTC</strong> means Web Real-Time Communication. It enables browser voice/video
+      calls and direct data connections. PingMetric can run a bounded WebRTC check to show the
+      network candidates the browser exposes; a candidate is not by itself proof of a privacy leak.
+    </p>
+    <p>
+      <strong>ICE</strong> (Interactive Connectivity Establishment) is how WebRTC gathers and tries
+      possible connection routes. A <strong>host</strong> candidate describes a local interface,
+      <strong>srflx</strong> (server-reflexive) describes an address learned through a server, and
+      <strong>relay</strong> uses a forwarding server. PingMetric labels the candidate types it can
+      observe.
+    </p>
+    <p>
+      <strong>STUN</strong> means Session Traversal Utilities for NAT; it helps a device learn how
+      it appears outside its router. <strong>TURN</strong> means Traversal Using Relays around NAT;
+      it forwards media when a direct route cannot be made. PingMetric's WebRTC test uses configured
+      STUN servers and does not operate a TURN relay.
+    </p>
+    <p>
+      <strong>mDNS</strong> means Multicast DNS. Browsers may replace a local address in a WebRTC
+      host candidate with a temporary-looking <code>.local</code> name to make the device's local
+      address harder for a page to identify. PingMetric labels such candidates as mDNS rather than
+      treating the name as a public IP.
     </p>
   </section>
-  <section>
+  <section id="network-intelligence">
     <h2>Network intelligence and browser APIs</h2>
     <p>
-      VPN, proxy, Tor, datacenter, mobile, satellite, anycast, bogon/reserved, crawler/bot and
-      known-abusive classifications come from external IP intelligence and can have false positives
-      or negatives. Network Information API values (effective type, downlink, RTT) are browser
-      estimates, not M-Lab results. Web Crypto availability does not mean the whole connection is
-      secure.
+      <strong>VPN</strong> means Virtual Private Network: traffic is sent through another network
+      endpoint, often to protect traffic on the way to it. A <strong>proxy</strong> is an
+      intermediary that makes requests or forwards traffic for a device. <strong>Tor</strong> (The
+      Onion Router) routes traffic through multiple relays to make tracing its path harder.
+      <strong>Datacenter/hosting</strong> means an address is associated with servers rather than a
+      typical home connection. These are provider-reported IP classifications; PingMetric shows
+      generic detected/not-detected states and can be wrong. They do not identify what software or
+      service you personally use.
     </p>
     <p>
-      PingMetric uses M-Lab NDT7 for active end-to-end upload/download measurement with a
-      measurement server and test data. Results do not guarantee an ISP-plan speed. DNS leak testing
-      needs controlled DNS infrastructure, so it is unavailable in browser-only mode.
+      The <strong>Network Information API</strong> is an optional browser interface that may report
+      an estimated connection type, downlink, and RTT. It matters as a rough local hint, not a
+      measured line speed. PingMetric labels these as browser estimates and keeps them separate from
+      NDT7 results.
+    </p>
+    <p>
+      <strong>Web Crypto</strong> is the browser's cryptographic API for operations such as hashing.
+      PingMetric checks whether it is available for app functions; its presence does not mean every
+      website connection or device setting is secure. A <strong>secure context</strong> is a browser
+      page loaded in a protected setting, usually HTTPS (with localhost as a development exception).
+      Some browser APIs, including Web Crypto features, require one. PingMetric reports whether its
+      current page has a secure context.
+    </p>
+    <p>
+      <strong>DNS</strong> means Domain Name System; it looks up the address for a name such as a
+      website domain. A <strong>DNS leak</strong> is when name lookups use a DNS provider or route
+      different from the one a person expects, for example outside a VPN. Reliable detection needs
+      controlled DNS servers and observation of the resolver receiving each lookup. A browser-only
+      page cannot reliably see that path, so PingMetric marks DNS leak testing as unavailable rather
+      than guessing.
     </p>
   </section>
   <section>

@@ -66,6 +66,9 @@
         [attr.aria-pressed]="privacy.sensitiveVisible()"
         (click)="privacy.toggle()"
       >
+        <span class="material-symbols-rounded" aria-hidden="true">{{
+          privacy.sensitiveVisible() ? 'visibility_off' : 'visibility'
+        }}</span>
         {{ privacy.sensitiveVisible() ? 'Hide sensitive info' : 'Show sensitive info' }}</button
       ><button class="quiet" type="button" (click)="lock()">Lock</button>
     </nav>
@@ -330,7 +333,9 @@
               <app-sensitive-value [value]="intelligence()?.asnDetails?.route" />
             </dd>
             <dt>Description</dt>
-            <dd>{{ present(intelligence()?.asnDetails?.description) }}</dd>
+            <dd>
+              <app-sensitive-value [value]="intelligence()?.asnDetails?.description" />
+            </dd>
             <dt>Organization</dt>
             <dd><app-sensitive-value [value]="intelligence()?.asnDetails?.organization" /></dd>
             <dt>Country</dt>
@@ -390,32 +395,32 @@
             </p>
             <dl>
               <dt>Organization</dt>
-              <dd>{{ present(intelligence()?.abuseDetails?.name) }}</dd>
+              <dd><app-sensitive-value [value]="intelligence()?.abuseDetails?.name" /></dd>
               <dt>Email</dt>
-              <dd>{{ present(intelligence()?.abuseDetails?.email) }}</dd>
+              <dd><app-sensitive-value [value]="intelligence()?.abuseDetails?.email" /></dd>
               <dt>Phone</dt>
-              <dd>{{ present(intelligence()?.abuseDetails?.phone) }}</dd>
+              <dd><app-sensitive-value [value]="intelligence()?.abuseDetails?.phone" /></dd>
               <dt>Address</dt>
-              <dd>{{ present(intelligence()?.abuseDetails?.address) }}</dd>
+              <dd><app-sensitive-value [value]="intelligence()?.abuseDetails?.address" /></dd>
             </dl>
           </section>
         }
         @if (intelligence()?.vpnProvider) {
           <section class="detail-group">
             <h3>VPN details</h3>
-            <p>{{ intelligence()?.vpnProvider }}</p>
+            <p><app-sensitive-value [value]="intelligence()?.vpnProvider" /></p>
           </section>
         }
         @if (intelligence()?.datacenterProvider) {
           <section class="detail-group">
             <h3>Datacenter details</h3>
-            <p>{{ intelligence()?.datacenterProvider }}</p>
+            <p><app-sensitive-value [value]="intelligence()?.datacenterProvider" /></p>
           </section>
         }
         @if (intelligence()?.egressService) {
           <section class="detail-group">
             <h3>Egress service</h3>
-            <p>{{ intelligence()?.egressService }}</p>
+            <p><app-sensitive-value [value]="intelligence()?.egressService" /></p>
           </section>
         }
       </details>
@@ -498,8 +503,8 @@
       <app-sensitive-value [value]="speed.server()?.observedClientAddress" />
     </p>
     <p>
-      Browser estimate: {{ network.info().downlink || 'Not exposed' }} Mbps ·
-      {{ network.info().rtt || 'Not exposed' }} ms
+      Browser estimate: {{ speedValue(network.info().downlink) ?? 'Not exposed' }}
+      {{ speedUnit.unitLabel() }} · {{ network.info().rtt || 'Not exposed' }} ms
     </p>
   </details>
 </main>
