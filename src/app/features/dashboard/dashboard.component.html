@@ -2,7 +2,7 @@
   <a class="brand" routerLink="/"
     ><img ngSrc="ping-metric.png" width="36" height="36" alt="" /><span>PingMetric</span></a
   >
-  <nav aria-label="Primary">
+  <nav class="desktop-nav" aria-label="Primary">
     <a routerLink="/history"
       ><span class="material-symbols-rounded" aria-hidden="true">history</span>History</a
     ><a routerLink="/settings"
@@ -13,57 +13,78 @@
       <span class="material-symbols-rounded" aria-hidden="true">lock</span>Lock
     </button>
   </nav>
+  <button
+    class="quiet menu-button"
+    type="button"
+    aria-label="Open navigation"
+    (click)="openNavigation()"
+  >
+    <span class="material-symbols-rounded" aria-hidden="true">menu</span>
+  </button>
 </header>
+<dialog
+  #mobileNavigation
+  class="mobile-navigation"
+  tabindex="-1"
+  aria-label="Navigation"
+  (click)="closeNavigationOnBackdrop($event)"
+  (keydown.escape)="closeNavigation()"
+>
+  <div class="drawer-content">
+    <div class="drawer-heading">
+      <strong>PingMetric</strong
+      ><button
+        class="quiet"
+        type="button"
+        aria-label="Close navigation"
+        (click)="closeNavigation()"
+      >
+        <span class="material-symbols-rounded" aria-hidden="true">close</span>
+      </button>
+    </div>
+    <nav>
+      <a routerLink="/" (click)="closeNavigation()">Dashboard</a
+      ><a routerLink="/history" (click)="closeNavigation()">History</a
+      ><a routerLink="/settings" (click)="closeNavigation()">Settings</a
+      ><a routerLink="/about" (click)="closeNavigation()">About</a
+      ><button class="quiet" type="button" (click)="lock()">Lock</button>
+    </nav>
+  </div>
+</dialog>
 <main>
   <section class="hero" aria-labelledby="dashboard-title">
     <div>
       <p class="eyebrow">
-        {{ network.info().online ? 'Online' : 'Offline' }} · Browser-based diagnostics
+        <span class="status-dot" aria-hidden="true"></span
+        >{{ network.info().online ? 'Connected' : 'Offline' }}
       </p>
-      <h1 id="dashboard-title">Understand your connection.</h1>
-      <p>
-        Measured end-to-end Internet performance — not your ISP package’s theoretical line speed.
-      </p>
+      <h1 id="dashboard-title">Connection diagnostics</h1>
+      <p>Measure end-to-end performance and review browser-visible network information.</p>
     </div>
     <button
       class="primary test icon-button"
-      [disabled]="
-        !network.info().online ||
-        [
-          'preparing',
-          'finding-server',
-          'measuring-latency',
-          'download',
-          'upload',
-          'finalizing',
-        ].includes(speed.phase())
-      "
+      [disabled]="!network.info().online || speed.isRunning()"
       (click)="requestTest()"
     >
       <span class="material-symbols-rounded" aria-hidden="true">{{
         speed.phase() === 'complete' ? 'refresh' : 'speed'
       }}</span
-      >{{ speed.phase() === 'complete' ? 'Test Again' : 'Start Test' }}
+      >{{ speed.phase() === 'complete' ? 'Test again' : 'Start test' }}
     </button>
   </section>
   @if (showDisclosure()) {
     <section class="disclosure" role="dialog" aria-labelledby="disclosure-title">
       <h2 id="disclosure-title">Before measuring with M-Lab</h2>
       <p>
-        Speed testing transfers a meaningful amount of data. M-Lab receives measurement information,
-        including your public IP, necessary to run and publish its network measurement service.
+        Speed testing transfers a meaningful amount of data. M-Lab receives measurement information
+        needed to run the test.
       </p>
-      <p>
-        <a href="https://www.measurementlab.net/privacy/" target="_blank" rel="noreferrer"
-          >Read M-Lab’s data policy</a
-        >.
-      </p>
-      <button class="primary" (click)="acceptDisclosure()">Accept and start test</button
+      <button class="primary" (click)="acceptDisclosure()">Accept and start</button
       ><button class="quiet" (click)="showDisclosure.set(false)">Not now</button>
     </section>
   }
   @if (speed.isRunning()) {
-    <section class="measurement" aria-live="polite" aria-label="Speed test in progress">
+    <section class="measurement" aria-live="polite">
       <div class="phase-track" aria-hidden="true">
         <span [style.width.%]="speed.phaseProgress()"></span>
       </div>
@@ -71,28 +92,19 @@
         <span class="activity" aria-hidden="true"></span>{{ speed.phase().replace('-', ' ') }}
       </p>
       @if (speed.phase() === 'download' || speed.phase() === 'upload') {
-        <div class="live-reading">
-          <p>{{ speed.phase() === 'download' ? 'Download' : 'Upload' }}</p>
-          <div
-            class="speed-gauge"
-            [style.--gauge]="
-              (speed.phase() === 'download'
-                ? speed.download().liveMbps
-                : speed.upload().liveMbps) || 0
-            "
-          >
-            <strong>{{
+        <div class="live-reading" [class.upload]="speed.phase() === 'upload'">
+          <p>Testing {{ speed.phase() }}</p>
+          <strong
+            >{{
               (speed.phase() === 'download' ? speed.download().liveMbps : speed.upload().liveMbps)
                 | number: '1.1-1'
-            }}</strong
-            ><span>Mbps</span>
-          </div>
-          <small
+            }}
+            <small>Mbps</small></strong
+          ><span
             >Transferred
             {{
-              (speed.phase() === 'download' ? speed.download().bytes : speed.upload().bytes) || 0
-            }}
-            bytes</small
+              bytes(speed.phase() === 'download' ? speed.download().bytes : speed.upload().bytes)
+            }}</span
           >
         </div>
       } @else {
@@ -103,7 +115,7 @@
               speed.phase() === 'measuring-latency'
                 ? 'Measuring application latency'
                 : speed.phase() === 'finding-server'
-                  ? 'Finding an M-Lab measurement server'
+                  ? 'Finding an M-Lab server'
                   : 'Preparing measurement'
             }}
           </p>
@@ -114,148 +126,280 @@
   @if (speed.error()) {
     <p class="error" role="alert">{{ speed.error() }}</p>
   }
-  <section class="metrics" aria-label="Speed test results">
-    <article>
-      <span>Download</span
-      ><strong>
-        @if (speed.download().mbps !== undefined) {
-          {{ speed.download().mbps | number: '1.1-1' }} <small>Mbps</small>
-        } @else {
-          —
-        }
-      </strong>
-      <p>Transferred {{ speed.download().bytes || 0 }} bytes</p>
+  @if (speed.latencyError()) {
+    <p class="warning" role="status">Latency unavailable · speed testing continued</p>
+  }
+  <section class="metrics" aria-label="Speed results">
+    <article class="metric download">
+      <span class="material-symbols-rounded" aria-hidden="true">download</span>
+      <p>Download</p>
+      <strong>{{ speed.download().mbps | number: '1.1-1' }} <small>Mbps</small></strong
+      ><em>{{ bytes(speed.download().bytes) }} transferred</em>
     </article>
-    <article>
-      <span>Upload</span
-      ><strong>
-        @if (speed.upload().mbps !== undefined) {
-          {{ speed.upload().mbps | number: '1.1-1' }} <small>Mbps</small>
-        } @else {
-          —
-        }
-      </strong>
-      <p>Transferred {{ speed.upload().bytes || 0 }} bytes</p>
-    </article>
-    <article>
-      <span>HTTP/Application latency</span
-      ><strong>
-        @if (speed.latency()?.medianMs !== undefined) {
-          {{ speed.latency()?.medianMs | number: '1.0-0' }} <small>ms</small>
-        } @else {
-          —
-        }
-      </strong>
-      <p>
-        Jitter
-        @if (speed.latency()?.jitterMs !== undefined) {
-          {{ speed.latency()?.jitterMs | number: '1.0-0' }} ms
-        } @else {
-          —
-        }
-      </p>
-    </article>
-    <article>
-      <span>TCP retransmission estimate</span
-      ><strong>
-        @if (retransmission() !== undefined) {
-          {{ retransmission() | number: '1.1-1' }}%
-        } @else {
-          Not available
-        }
-      </strong>
-      <p>Indirect signal, not exact packet loss.</p>
+    <article class="metric upload">
+      <span class="material-symbols-rounded" aria-hidden="true">upload</span>
+      <p>Upload</p>
+      <strong>{{ speed.upload().mbps | number: '1.1-1' }} <small>Mbps</small></strong
+      ><em>{{ bytes(speed.upload().bytes) }} transferred</em>
     </article>
   </section>
-  @if (speed.latencyError()) {
-    <p class="warning" role="status">
-      Latency unavailable: {{ speed.latencyError() }} Speed testing continued.
-    </p>
-  }
+  <section class="secondary-metrics" aria-label="Connection responsiveness">
+    <article class="latency">
+      <span>Latency</span
+      ><strong>{{ speed.latency()?.medianMs | number: '1.0-0' }} <small>ms</small></strong>
+    </article>
+    <article class="jitter">
+      <span>Jitter</span
+      ><strong>{{ speed.latency()?.jitterMs | number: '1.0-0' }} <small>ms</small></strong>
+    </article>
+    <article class="retransmission">
+      <span>TCP retransmission</span
+      ><strong>{{ retransmission() | number: '1.1-1' }}<small>%</small></strong
+      ><em>Indirect signal</em>
+    </article>
+  </section>
+  <section class="network-summary card" aria-labelledby="network-title">
+    <div>
+      <p class="card-kicker">Network</p>
+      <h2 id="network-title">{{ intelligence()?.organization || 'Network information' }}</h2>
+      <p>
+        {{ intelligence()?.asn || 'ASN unavailable' }} ·
+        {{ intelligence()?.city || intelligence()?.country || 'Location unavailable' }}
+      </p>
+      <p>
+        {{ ips()?.protocol || 'Protocol unknown' }} ·
+        {{ network.info().effectiveType || 'Browser estimate unavailable' }}
+      </p>
+    </div>
+    <div class="provider-status" [class.warning-mode]="intelligenceMode() === 'anonymous-fallback'">
+      <span class="material-symbols-rounded" aria-hidden="true">{{
+        intelligenceMode() === 'keyed' ? 'verified' : intelligenceMode() ? 'info' : 'cloud_off'
+      }}</span>
+      <div>
+        <strong>{{ providerTitle() }}</strong
+        ><small>{{ providerDetail() }}</small>
+      </div>
+    </div>
+  </section>
   <section class="actions">
-    <button class="secondary icon-button" (click)="refreshNetwork()">
-      <span class="material-symbols-rounded" aria-hidden="true">sync</span>Refresh Network Info</button
+    <button
+      class="secondary icon-button"
+      [disabled]="refreshingNetwork()"
+      (click)="refreshNetwork()"
+    >
+      <span class="material-symbols-rounded" aria-hidden="true">sync</span
+      >{{ refreshingNetwork() ? 'Refreshing…' : 'Refresh network info' }}</button
     ><button class="secondary icon-button" (click)="testWebRtc()">
       <span class="material-symbols-rounded" aria-hidden="true">privacy_tip</span>Run WebRTC privacy
       test
     </button>
   </section>
-  <div class="grid">
-    <section class="card" aria-labelledby="ip-title">
-      <h2 id="ip-title">IP Addresses</h2>
+  @if (lastNetworkRefresh()) {
+    <p class="updated">Network information updated just now</p>
+  }
+  <section class="card intelligence" aria-labelledby="intelligence-title">
+    <div class="section-heading">
+      <div>
+        <p class="card-kicker">Provider-reported</p>
+        <h2 id="intelligence-title">Network intelligence</h2>
+      </div>
+      <span class="badge">{{
+        intelligenceMode() === 'keyed' ? 'Full' : intelligenceMode() ? 'Basic' : 'Unavailable'
+      }}</span>
+    </div>
+    @if (intelligence()) {
+      <div class="security-list">
+        @for (row of securityRows(); track row[1]) {
+          <div class="security-row">
+            <span>{{ row[0] }}</span
+            ><strong [class]="securityClass(row[2], securityValue(row[1]))"
+              ><span class="material-symbols-rounded" aria-hidden="true">{{
+                securityValue(row[1]) === undefined
+                  ? 'remove'
+                  : securityValue(row[1])
+                    ? 'visibility'
+                    : 'check_circle'
+              }}</span
+              >{{ securityText(securityValue(row[1])) }}</strong
+            >
+          </div>
+        }
+      </div>
+      <details>
+        <summary>Advanced network details</summary>
+        <section class="detail-group">
+          <h3>Provider</h3>
+          <dl>
+            <dt>Provider</dt>
+            <dd>{{ intelligence()?.companyDetails?.name || intelligence()?.organization }}</dd>
+            <dt>Network type</dt>
+            <dd>
+              <span class="detail-badge">{{
+                intelligence()?.companyDetails?.type || intelligence()?.companyType
+              }}</span>
+            </dd>
+            <dt>Domain</dt>
+            <dd>{{ intelligence()?.companyDetails?.domain }}</dd>
+            <dt>Network</dt>
+            <dd class="mono">
+              {{ intelligence()?.companyDetails?.network || intelligence()?.network }}
+            </dd>
+            <dt>Netname</dt>
+            <dd class="mono">{{ intelligence()?.companyDetails?.netname }}</dd>
+            <dt>Provider reputation</dt>
+            <dd>{{ intelligence()?.companyDetails?.abuserScore }}</dd>
+          </dl>
+        </section>
+        <section class="detail-group">
+          <h3>ASN</h3>
+          <dl>
+            <dt>ASN</dt>
+            <dd class="mono">{{ intelligence()?.asnDetails?.asn || intelligence()?.asn }}</dd>
+            <dt>Route</dt>
+            <dd class="mono">{{ intelligence()?.asnDetails?.route }}</dd>
+            <dt>Description</dt>
+            <dd>{{ intelligence()?.asnDetails?.description }}</dd>
+            <dt>Organization</dt>
+            <dd>{{ intelligence()?.asnDetails?.organization }}</dd>
+            <dt>Country</dt>
+            <dd>{{ intelligence()?.asnDetails?.country }}</dd>
+            <dt>Status</dt>
+            <dd>
+              {{
+                intelligence()?.asnDetails?.active === undefined
+                  ? ''
+                  : intelligence()?.asnDetails?.active
+                    ? 'Active'
+                    : 'Inactive'
+              }}
+            </dd>
+            <dt>Domain</dt>
+            <dd>{{ intelligence()?.asnDetails?.domain }}</dd>
+            <dt>RIR</dt>
+            <dd>{{ intelligence()?.asnDetails?.rir || intelligence()?.rir }}</dd>
+            <dt>Updated</dt>
+            <dd>{{ intelligence()?.asnDetails?.updated }}</dd>
+            <dt>ASN reputation</dt>
+            <dd>{{ intelligence()?.asnDetails?.abuserScore }}</dd>
+          </dl>
+        </section>
+        <section class="detail-group">
+          <h3>Approximate IP-based location</h3>
+          <dl>
+            <dt>City</dt>
+            <dd>{{ intelligence()?.locationDetails?.city }}</dd>
+            <dt>Region</dt>
+            <dd>{{ intelligence()?.locationDetails?.region }}</dd>
+            <dt>Country</dt>
+            <dd>{{ intelligence()?.locationDetails?.country }}</dd>
+            <dt>Postal code</dt>
+            <dd>{{ intelligence()?.locationDetails?.postalCode }}</dd>
+            <dt>Timezone</dt>
+            <dd>{{ intelligence()?.locationDetails?.timezone }}</dd>
+            <dt>UTC offset</dt>
+            <dd>{{ intelligence()?.locationDetails?.utcOffset }}</dd>
+            <dt>Accuracy</dt>
+            <dd>
+              <span class="detail-badge">{{ intelligence()?.locationDetails?.accuracy }}</span>
+            </dd>
+            <dt>Coordinates</dt>
+            <dd>
+              {{ intelligence()?.locationDetails?.latitude }},
+              {{ intelligence()?.locationDetails?.longitude }}
+            </dd>
+            <dt>Local time</dt>
+            <dd>{{ intelligence()?.locationDetails?.localTime }}</dd>
+          </dl>
+        </section>
+        @if (intelligence()?.abuseDetails) {
+          <section class="detail-group">
+            <h3>Network contact</h3>
+            <p class="contact-note">
+              This is the network abuse/contact record, not evidence about the current user.
+            </p>
+            <dl>
+              <dt>Organization</dt>
+              <dd>{{ intelligence()?.abuseDetails?.name }}</dd>
+              <dt>Email</dt>
+              <dd>{{ intelligence()?.abuseDetails?.email }}</dd>
+              <dt>Phone</dt>
+              <dd>{{ intelligence()?.abuseDetails?.phone }}</dd>
+              <dt>Address</dt>
+              <dd>{{ intelligence()?.abuseDetails?.address }}</dd>
+            </dl>
+          </section>
+        }
+        @if (intelligence()?.vpnProvider) {
+          <section class="detail-group">
+            <h3>VPN details</h3>
+            <p>{{ intelligence()?.vpnProvider }}</p>
+          </section>
+        }
+        @if (intelligence()?.datacenterProvider) {
+          <section class="detail-group">
+            <h3>Datacenter details</h3>
+            <p>{{ intelligence()?.datacenterProvider }}</p>
+          </section>
+        }
+        @if (intelligence()?.egressService) {
+          <section class="detail-group">
+            <h3>Egress service</h3>
+            <p>{{ intelligence()?.egressService }}</p>
+          </section>
+        }
+      </details>
+    } @else {
       <p>
-        Protocol availability: <strong>{{ ips()?.protocol || 'Loading…' }}</strong>
+        {{
+          intelligenceMessage() ||
+            'IP intelligence is not available. Speed testing and browser diagnostics remain available.'
+        }}
       </p>
-      <dl>
-        <dt>Public IP</dt>
-        <dd>
-          {{ ips()?.default?.value?.address || ips()?.default?.message || 'Unavailable' }}
-          <button class="copy" (click)="copy(ips()?.default?.value?.address)">Copy</button>
-        </dd>
-        <dt>IPv4</dt>
-        <dd>
-          {{ ips()?.ipv4?.value?.address || ips()?.ipv4?.state || 'Unavailable' }}
-          <button class="copy" (click)="copy(ips()?.ipv4?.value?.address)">Copy</button>
-        </dd>
-        <dt>IPv6</dt>
-        <dd>
-          {{ ips()?.ipv6?.value?.address || ips()?.ipv6?.state || 'Unavailable' }}
-          <button class="copy" (click)="copy(ips()?.ipv6?.value?.address)">Copy</button>
-        </dd>
-      </dl>
-    </section>
-    <section class="card" aria-labelledby="location-title">
-      <h2 id="location-title">Location &amp; network</h2>
-      @if (intelligence()) {
-        <p>
-          <strong>{{ intelligence()?.organization || 'Network operator unavailable' }}</strong>
-        </p>
-        <p>
-          {{ intelligence()?.city || 'Unknown city' }},
-          {{ intelligence()?.region || intelligence()?.country || 'Unknown region' }}
-        </p>
-        <p>ASN: {{ intelligence()?.asn || 'Not available' }}</p>
-        <p class="muted">Approximate IP-based location; it is not a physical address.</p>
-      } @else {
-        <p>IP intelligence is unavailable. Network measurements still work independently.</p>
-      }
-    </section>
-    <section class="card" aria-labelledby="privacy-title">
-      <h2 id="privacy-title">Security &amp; privacy</h2>
-      <dl>
-        <dt>HTTPS / secure context</dt>
-        <dd>{{ network.info().secureContext ? 'Available' : 'Not available' }}</dd>
-        <dt>Web Crypto</dt>
-        <dd>{{ network.info().webCrypto ? 'Available' : 'Unavailable' }}</dd>
-        <dt>WebRTC</dt>
-        <dd>{{ network.info().webRtc ? 'Supported' : 'Unsupported' }}</dd>
-        <dt>DNS leak test</dt>
-        <dd>Not available in browser-only mode</dd>
-      </dl>
-      <p class="muted">
-        Browser apps cannot read TLS ciphers, local DNS, MAC addresses, router state, or scan your
-        network.
-      </p>
-    </section>
-    <section class="card" aria-labelledby="webrtc-title">
-      <h2 id="webrtc-title">WebRTC exposure</h2>
-      <p>
-        {{ rtc()?.outcome || 'Run the bounded test to inspect browser-exposed ICE candidates.' }}
-      </p>
-      @if (rtc()?.candidates?.length) {
-        <ul>
-          @for (candidate of rtc()?.candidates ?? []; track candidate.address + candidate.type) {
-            <li>
-              {{ candidate.type }} · {{ candidate.address }} ·
-              {{ candidate.protocol || 'protocol unknown' }}
-            </li>
-          }
-        </ul>
-      }
-    </section>
-  </div>
-  <section class="card technical">
-    <h2>Technical details</h2>
+    }
+  </section>
+  <section class="card addresses" aria-labelledby="addresses-title">
+    <h2 id="addresses-title">IP addresses</h2>
+    <div class="address-row">
+      <div>
+        <span>IPv4</span><code>{{ ips()?.ipv4?.value?.address || 'Unavailable' }}</code>
+      </div>
+      <button class="copy" (click)="copy(ips()?.ipv4?.value?.address)">Copy</button>
+    </div>
+    <div class="address-row">
+      <div>
+        <span>IPv6</span><code>{{ ips()?.ipv6?.value?.address || 'Unavailable' }}</code>
+      </div>
+      <button class="copy" (click)="copy(ips()?.ipv6?.value?.address)">Copy</button>
+    </div>
+  </section>
+  <section class="card browser-privacy" aria-labelledby="privacy-title">
+    <h2 id="privacy-title">Browser privacy</h2>
+    <dl>
+      <dt>Secure context</dt>
+      <dd>{{ network.info().secureContext ? 'Available' : 'Not available' }}</dd>
+      <dt>Web Crypto</dt>
+      <dd>{{ network.info().webCrypto ? 'Available' : 'Unavailable' }}</dd>
+      <dt>WebRTC</dt>
+      <dd>{{ network.info().webRtc ? 'Supported' : 'Unsupported' }}</dd>
+      <dt>Network Information API</dt>
+      <dd>{{ network.info().networkInformation ? 'Supported' : 'Not available' }}</dd>
+      <dt>DNS leak test</dt>
+      <dd>Not available in browser-only mode</dd>
+    </dl>
+  </section>
+  <section class="card webrtc" aria-labelledby="webrtc-title">
+    <h2 id="webrtc-title">WebRTC exposure</h2>
+    <p>{{ rtc()?.outcome || 'Not tested' }}</p>
+    @if (rtc()?.candidates?.length) {
+      <ul>
+        @for (candidate of rtc()?.candidates ?? []; track candidate.address + candidate.type) {
+          <li>{{ candidate.type }} · {{ candidate.address }}</li>
+        }
+      </ul>
+    }
+  </section>
+  <details class="card technical">
+    <summary>Advanced technical details</summary>
     <p>
       Measurement server:
       {{ speed.server()?.hostname || speed.server()?.endpoint || 'Available after a test' }}
@@ -265,14 +409,8 @@
       {{ speed.server()?.observedClientAddress || 'Not available' }}
     </p>
     <p>
-      Browser estimate: {{ network.info().effectiveType || 'Not exposed' }}
-      @if (network.info().downlink) {
-        · {{ network.info().downlink }} Mbps estimate
-      }
-      @if (network.info().rtt) {
-        · {{ network.info().rtt }} ms RTT estimate
-      }
+      Browser estimate: {{ network.info().downlink || 'Not exposed' }} Mbps ·
+      {{ network.info().rtt || 'Not exposed' }} ms
     </p>
-    <p class="muted">Application/TCP round-trip time; not raw ICMP ping.</p>
-  </section>
+  </details>
 </main>

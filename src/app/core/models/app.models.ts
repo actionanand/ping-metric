@@ -36,6 +36,10 @@ export interface ServiceResult<T> {
   value?: T;
   message?: string;
 }
+export type IpIntelligenceMode = 'keyed' | 'anonymous' | 'anonymous-fallback';
+export interface IpIntelligenceResult extends ServiceResult<IpIntelligence> {
+  providerMode?: IpIntelligenceMode;
+}
 export interface IpAddress {
   address: string;
   family: IpFamily;
@@ -97,7 +101,63 @@ export interface IpIntelligence {
   asn?: string;
   organization?: string;
   network?: string;
-  security: Record<string, boolean | undefined>;
+  rir?: string;
+  companyType?: string;
+  vpnProvider?: string;
+  datacenterProvider?: string;
+  egressService?: string;
+  companyDetails?: {
+    name?: string;
+    domain?: string;
+    type?: string;
+    network?: string;
+    netname?: string;
+    abuserScore?: string;
+  };
+  asnDetails?: {
+    asn?: string;
+    route?: string;
+    description?: string;
+    country?: string;
+    active?: boolean;
+    organization?: string;
+    domain?: string;
+    abuseEmail?: string;
+    type?: string;
+    updated?: string;
+    rir?: string;
+    abuserScore?: string;
+  };
+  locationDetails?: {
+    city?: string;
+    region?: string;
+    country?: string;
+    countryCode?: string;
+    postalCode?: string;
+    timezone?: string;
+    localTime?: string;
+    utcOffset?: string;
+    accuracy?: string;
+    latitude?: number;
+    longitude?: number;
+    callingCode?: string;
+    currencyCode?: string;
+    continent?: string;
+  };
+  abuseDetails?: { name?: string; address?: string; email?: string; phone?: string };
+  security: Record<
+    | 'vpn'
+    | 'proxy'
+    | 'tor'
+    | 'datacenter'
+    | 'abuser'
+    | 'mobile'
+    | 'satellite'
+    | 'anycast'
+    | 'bogon'
+    | 'crawler',
+    boolean | undefined
+  >;
 }
 export interface WebRtcCandidate {
   address: string;

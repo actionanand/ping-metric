@@ -34,7 +34,11 @@ describe('IP intelligence lookup', () => {
   it('makes one anonymous request when no key is configured', async () => {
     fetchMock.mockResolvedValueOnce(response(200, { ip }));
 
-    await expect(service.lookup(ip)).resolves.toMatchObject({ state: 'available', value: { ip } });
+    await expect(service.lookup(ip)).resolves.toMatchObject({
+      state: 'available',
+      providerMode: 'anonymous',
+      value: { ip },
+    });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(requestedUrl(0).searchParams.get('q')).toBe(ip);
     expect(requestedUrl(0).searchParams.has('key')).toBe(false);
@@ -62,6 +66,7 @@ describe('IP intelligence lookup', () => {
 
     await expect(service.lookup(ip)).resolves.toEqual({
       state: 'available',
+      providerMode: 'keyed',
       value: normalize(data),
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -97,6 +102,7 @@ describe('IP intelligence lookup', () => {
     expect(fetchMock.mock.calls[1][1]).toEqual({ cache: 'no-store' });
     expect(result).toMatchObject({
       state: 'available',
+      providerMode: 'anonymous-fallback',
       value: {
         ip,
         city: 'Example City',
@@ -127,6 +133,13 @@ describe('IP intelligence lookup', () => {
       message: 'IP intelligence provider did not return data.',
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('never reports quota fallback for an anonymous failure', async () => {
+    fetchMock.mockResolvedValueOnce(response(500, { error: 'Provider error' }));
+    const result = await service.lookup(ip);
+    expect(result.providerMode).toBeUndefined();
+    expect(result.message).not.toContain('quota');
   });
 
   it('does not retry an anonymous 429', async () => {
@@ -198,5 +211,97 @@ describe('ipapi.is normalization', () => {
       organization: 'Example ASN',
       security: { vpn: true },
     });
+  });
+
+  it('preserves three-state security flags and keyed detail fields', () => {
+    const normalized = normalize({
+      ip,
+      rir: 'ARIN',
+      is_vpn: false,
+      is_proxy: true,
+      is_anycast: true,
+      is_crawler: null,
+      vpn: { name: 'Example VPN' },
+      datacenter: { datacenter: 'Example DC' },
+      egress_service: { name: 'Privacy relay' },
+    });
+    expect(normalized).toMatchObject({
+      rir: 'ARIN',
+      vpnProvider: 'Example VPN',
+      datacenterProvider: 'Example DC',
+      egressService: 'Privacy relay',
+      security: { vpn: false, proxy: true, anycast: true, crawler: undefined, tor: undefined },
+    });
+  });
+
+  it('normalizes real keyed company, ASN, location, and network contact objects', () => {
+    const result = normalize({
+      ip,
+      company: {
+        name: 'Example ISP',
+        abuser_score: '0 (Very Low)',
+        domain: 'example.test',
+        type: 'isp',
+        network: '203.0.113.0/24',
+        netname: 'EXAMPLE-NET',
+      },
+      abuse: {
+        name: 'Example Abuse',
+        address: '1 Example Road',
+        email: 'abuse@example.test',
+        phone: '+1 555 0100',
+      },
+      asn: {
+        asn: 64500,
+        abuser_score: '0 (Very Low)',
+        route: '203.0.113.0/24',
+        descr: 'Example ASN',
+        country: 'EX',
+        active: true,
+        org: 'Example ISP',
+        domain: 'example.test',
+        abuse: 'abuse@example.test',
+        type: 'isp',
+        updated: '2026-01-01',
+        rir: 'ARIN',
+      },
+      location: {
+        country: 'Example Country',
+        country_code: 'EX',
+        state: 'Example State',
+        city: 'Example City',
+        latitude: 1,
+        longitude: 2,
+        zip: '12345',
+        timezone: 'UTC',
+        local_time: '2026-01-01T00:00:00+00:00',
+        utcoffset: '+00:00',
+        accuracy: 'HIGH',
+        calling_code: '1',
+        currency_code: 'USD',
+        continent: 'NA',
+      },
+    });
+    expect(result).toMatchObject({
+      companyDetails: { name: 'Example ISP', netname: 'EXAMPLE-NET', abuserScore: '0 (Very Low)' },
+      asnDetails: { asn: 'AS64500', description: 'Example ASN', active: true, rir: 'ARIN' },
+      locationDetails: {
+        postalCode: '12345',
+        utcOffset: '+00:00',
+        accuracy: 'HIGH',
+        callingCode: '1',
+        currencyCode: 'USD',
+      },
+      abuseDetails: { email: 'abuse@example.test', phone: '+1 555 0100' },
+    });
+  });
+
+  it('omits optional detail objects when the provider did not send them', () => {
+    const result = normalize({ ip, is_vpn: false, is_datacenter: false });
+    expect(result?.vpnProvider).toBeUndefined();
+    expect(result?.datacenterProvider).toBeUndefined();
+    expect(result?.egressService).toBeUndefined();
+    expect(result?.security.vpn).toBe(false);
+    expect(result?.security.proxy).toBeUndefined();
   });
 });

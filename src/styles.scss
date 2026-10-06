@@ -8,6 +8,22 @@
   --accent-strong: #0e653a;
   --border: #d7e3db;
   --notice: #e7f5eb;
+  --metric-download: #0569b6;
+  --metric-download-soft: #eaf5ff;
+  --metric-upload: #6941c6;
+  --metric-upload-soft: #f3eeff;
+  --metric-latency: #a85700;
+  --metric-latency-soft: #fff4e5;
+  --metric-jitter: #087d76;
+  --metric-jitter-soft: #e8f8f6;
+  --metric-success: #137a43;
+  --metric-success-soft: #e8f6ed;
+  --metric-warning: #9a5b00;
+  --metric-warning-soft: #fff3d9;
+  --metric-danger: #b42318;
+  --metric-danger-soft: #ffebe9;
+  --metric-neutral: #5d6b64;
+  --metric-neutral-soft: #eef2ef;
   --shadow: 0 8px 24px rgb(20 55 40 / 7%);
   font-family:
     Inter,
@@ -28,6 +44,22 @@
   --accent-strong: #8ae6aa;
   --border: #315343;
   --notice: #203e2d;
+  --metric-download: #72c7ff;
+  --metric-download-soft: #123047;
+  --metric-upload: #c7a7ff;
+  --metric-upload-soft: #30234d;
+  --metric-latency: #ffbe6b;
+  --metric-latency-soft: #493317;
+  --metric-jitter: #72d8d0;
+  --metric-jitter-soft: #123f3d;
+  --metric-success: #82dfa2;
+  --metric-success-soft: #173d29;
+  --metric-warning: #ffd080;
+  --metric-warning-soft: #4c3918;
+  --metric-danger: #ffaba3;
+  --metric-danger-soft: #4d2422;
+  --metric-neutral: #bfcbc3;
+  --metric-neutral-soft: #293a31;
   --shadow: 0 8px 24px rgb(0 0 0 / 25%);
 }
 @media (prefers-color-scheme: dark) {
@@ -41,6 +73,22 @@
     --accent-strong: #8ae6aa;
     --border: #315343;
     --notice: #203e2d;
+    --metric-download: #72c7ff;
+    --metric-download-soft: #123047;
+    --metric-upload: #c7a7ff;
+    --metric-upload-soft: #30234d;
+    --metric-latency: #ffbe6b;
+    --metric-latency-soft: #493317;
+    --metric-jitter: #72d8d0;
+    --metric-jitter-soft: #123f3d;
+    --metric-success: #82dfa2;
+    --metric-success-soft: #173d29;
+    --metric-warning: #ffd080;
+    --metric-warning-soft: #4c3918;
+    --metric-danger: #ffaba3;
+    --metric-danger-soft: #4d2422;
+    --metric-neutral: #bfcbc3;
+    --metric-neutral-soft: #293a31;
     --shadow: 0 8px 24px rgb(0 0 0 / 25%);
   }
 }
@@ -55,6 +103,13 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+}
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+main {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 a {
   color: var(--accent-strong);
@@ -95,6 +150,19 @@ input {
   color: var(--text);
   border-radius: 0.45rem;
   padding: 0.65rem;
+}
+@media (max-width: 47.99rem) {
+  main.page {
+    padding-block: 1.25rem;
+  }
+  .page > a:first-child {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+  .page button {
+    min-height: 2.75rem;
+  }
 }
 button:focus-visible,
 a:focus-visible,
