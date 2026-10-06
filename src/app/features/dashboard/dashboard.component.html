@@ -81,11 +81,11 @@
 <main>
   <section class="hero" aria-labelledby="dashboard-title">
     <div>
+      <h1 id="dashboard-title">Connection Diagnostics</h1>
       <p class="eyebrow">
         <span class="status-dot" [class.offline]="!network.info().online" aria-hidden="true"></span
         >{{ network.info().online ? 'Connected' : 'Offline' }}
       </p>
-      <h1 id="dashboard-title">Connection diagnostics</h1>
       <p>Measure end-to-end performance and review browser-visible network information.</p>
     </div>
     <button
@@ -233,7 +233,7 @@
             <dt>
               ASN
               <a routerLink="/network-guide" fragment="asn" aria-label="Learn about ASN"
-                ><span class="material-symbols-rounded" aria-hidden="true">bookmark</span></a
+                ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
               >
             </dt>
             <dd><app-sensitive-value [value]="value" /></dd>
@@ -244,7 +244,7 @@
             <dt>
               ISP
               <a routerLink="/network-guide" fragment="isp" aria-label="Learn about ISP"
-                ><span class="material-symbols-rounded" aria-hidden="true">bookmark</span></a
+                ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
               >
             </dt>
             <dd><app-sensitive-value [value]="value" /></dd>
@@ -258,7 +258,7 @@
                 routerLink="/network-guide"
                 fragment="ip-location"
                 aria-label="Learn about IP-based location"
-                ><span class="material-symbols-rounded" aria-hidden="true">bookmark</span></a
+                ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
               >
             </dt>
             <dd><app-sensitive-value [value]="value" /></dd>
@@ -550,7 +550,7 @@
             aria-label="Learn about IPv4"
             title="Learn about IPv4"
           >
-            <span class="material-symbols-rounded" aria-hidden="true">bookmark</span>
+            <span class="material-symbols-rounded" aria-hidden="true">help</span>
           </a>
         </span>
         <code><app-sensitive-value [value]="ips()?.ipv4?.value?.address" /></code>
@@ -576,7 +576,7 @@
             aria-label="Learn about IPv6"
             title="Learn about IPv6"
           >
-            <span class="material-symbols-rounded" aria-hidden="true">bookmark</span>
+            <span class="material-symbols-rounded" aria-hidden="true">help</span>
           </a>
         </span>
         <code><app-sensitive-value [value]="ips()?.ipv6?.value?.address" /></code>
@@ -623,7 +623,7 @@
                 [fragment]="anchor"
                 [attr.aria-label]="'Learn about ' + candidateLabel(candidate.type)"
                 title="Learn about this candidate type"
-                ><span class="material-symbols-rounded" aria-hidden="true">bookmark</span></a
+                ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
               >
             }
           </li>

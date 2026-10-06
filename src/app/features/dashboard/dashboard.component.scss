@@ -13,9 +13,11 @@ main {
 }
 .brand,
 .desktop-nav a,
+.desktop-nav button,
 .icon-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
 }
 .brand {
@@ -25,6 +27,45 @@ main {
 }
 .desktop-nav {
   display: none;
+}
+.desktop-nav a,
+.desktop-nav button {
+  min-height: 2.65rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.desktop-nav button {
+  background: transparent;
+  cursor: pointer;
+}
+.desktop-nav a:hover,
+.desktop-nav button:hover:not(:disabled) {
+  border-color: var(--border);
+  background: var(--notice);
+  color: var(--text);
+}
+.desktop-nav a:focus-visible,
+.desktop-nav button:focus-visible {
+  outline-offset: 2px;
+  background: var(--notice);
+}
+.desktop-nav .material-symbols-rounded {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  line-height: 1;
 }
 .menu-button {
   width: 2.75rem;
@@ -59,16 +100,36 @@ main {
 }
 .mobile-navigation a,
 .mobile-navigation nav button {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
   min-height: 3rem;
   padding: 0.75rem;
+  border-radius: 0.5rem;
   color: var(--text);
   text-align: left;
   text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+.mobile-navigation a:hover,
+.mobile-navigation nav button:hover:not(:disabled) {
+  background: var(--notice);
+}
+.mobile-navigation a .material-symbols-rounded,
+.mobile-navigation nav button .material-symbols-rounded {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 1.25rem;
+  font-size: 1.1rem;
+  line-height: 1;
 }
 .hero {
   display: grid;
   gap: 1rem;
   padding: 1.5rem 0 1rem;
+  text-align: center;
 }
 .eyebrow,
 .card-kicker,
@@ -82,12 +143,24 @@ main {
   display: inline-block;
   width: 0.5rem;
   height: 0.5rem;
-  margin-right: 0.4rem;
+  flex: 0 0 auto;
+  margin: 0;
   border-radius: 50%;
   background: var(--metric-success);
 }
 .status-dot.offline {
   background: var(--metric-neutral);
+}
+.status-dot:not(.offline) {
+  animation: status-pulse 1.8s ease-out infinite;
+}
+.hero .eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0.65rem 0 0.25rem;
+  text-align: center;
 }
 .hero h1 {
   margin: 0.2rem 0;
@@ -96,10 +169,12 @@ main {
   font-weight: 700;
 }
 .hero p:not(.eyebrow) {
+  margin-inline: auto;
   color: var(--muted);
   line-height: 1.55;
 }
 .test {
+  justify-self: center;
   justify-content: center;
   min-height: 3.25rem;
 }
@@ -175,6 +250,7 @@ main {
   display: flex;
   gap: 0.25rem;
   align-items: center;
+  justify-content: center;
 }
 .unit-toggle button {
   background: var(--metric-neutral-soft);
@@ -189,8 +265,10 @@ main {
   min-width: 0;
   padding: 1rem;
   border-radius: 0.85rem;
+  text-align: center;
 }
 .metric > span {
+  display: block;
   font-size: 1.4rem;
 }
 .metric p {
@@ -234,6 +312,7 @@ main {
   border-radius: 0.7rem;
   background: var(--surface);
   border: 1px solid var(--border);
+  text-align: center;
 }
 .secondary-metrics span,
 .secondary-metrics em {
@@ -241,6 +320,17 @@ main {
   color: var(--muted);
   font-size: 0.72rem;
   font-style: normal;
+}
+.secondary-metrics a {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  text-decoration: none;
+}
+.secondary-metrics a .material-symbols-rounded {
+  display: inline-block;
+  font-size: 0.85em;
+  line-height: 1;
 }
 .secondary-metrics strong {
   display: block;
@@ -256,6 +346,11 @@ main {
 .network-summary {
   display: grid;
   gap: 1rem;
+  justify-items: center;
+  text-align: center;
+}
+.network-summary > div:first-child {
+  width: 100%;
 }
 .network-summary h2 {
   margin: 0.15rem 0;
@@ -269,19 +364,23 @@ main {
 .network-facts {
   display: grid;
   gap: 0.35rem;
+  max-width: 28rem;
   margin: 0.75rem 0;
+  margin-inline: auto;
 }
 .network-facts > div {
   display: grid;
-  grid-template-columns: minmax(5rem, 0.6fr) minmax(0, 1.4fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.6rem;
 }
 .network-facts dt {
   color: var(--muted);
+  text-align: right;
 }
 .network-facts dd {
   min-width: 0;
   overflow-wrap: anywhere;
+  text-align: left;
 }
 .network-facts a,
 .candidate-row a {
@@ -292,6 +391,12 @@ main {
   min-height: 1.75rem;
   color: var(--accent-strong);
   vertical-align: middle;
+  text-decoration: none;
+}
+.network-facts a .material-symbols-rounded,
+.candidate-row a .material-symbols-rounded {
+  font-size: 0.85em;
+  line-height: 1;
 }
 .provider-status {
   display: flex;
@@ -300,6 +405,8 @@ main {
   padding: 0.75rem;
   border-radius: 0.7rem;
   background: var(--metric-neutral-soft);
+  justify-self: center;
+  text-align: left;
 }
 .provider-status.provider-keyed {
   background: var(--metric-success-soft);
@@ -346,6 +453,7 @@ main {
   margin: 0.75rem 0;
   text-transform: none;
   letter-spacing: 0;
+  text-align: center;
 }
 .section-heading {
   display: flex;
@@ -477,13 +585,25 @@ details dl {
 .address-row div {
   min-width: 0;
 }
-.address-row span,
+.address-row > div > span,
 .address-row code {
   display: block;
 }
-.address-row span {
+.address-row > div > span {
   color: var(--muted);
   font-size: 0.8rem;
+}
+.address-row a {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+.address-row a .material-symbols-rounded {
+  display: inline-block;
+  font-size: 0.85em;
+  line-height: 1;
 }
 .address-row code,
 .mono {
@@ -524,6 +644,13 @@ details dl {
     opacity: 0.55;
   }
 }
+@keyframes status-pulse {
+  50% {
+    box-shadow: 0 0 0 0.25rem var(--metric-success-soft);
+    opacity: 0.78;
+    transform: scale(0.9);
+  }
+}
 @media (min-width: 48rem) {
   .topbar {
     border: 0;
@@ -534,7 +661,7 @@ details dl {
     padding-top: 3rem;
   }
   .network-summary {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr);
     align-items: center;
   }
   .intelligence-toggle {
@@ -542,23 +669,23 @@ details dl {
   }
   .actions {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
   }
   .metrics {
     max-width: 42rem;
+    margin-inline: auto;
   }
   .secondary-metrics {
     max-width: 42rem;
+    margin-inline: auto;
   }
 }
 @media (min-width: 72rem) {
   .desktop-nav {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-  }
-  .desktop-nav a {
-    color: var(--muted);
-    text-decoration: none;
+    gap: 0.25rem;
   }
   .menu-button {
     display: none;
@@ -576,10 +703,14 @@ details dl {
   .webrtc,
   .technical {
     max-width: 52rem;
+    margin-inline: auto;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .activity {
+    animation: none;
+  }
+  .status-dot {
     animation: none;
   }
   .phase-track span {
