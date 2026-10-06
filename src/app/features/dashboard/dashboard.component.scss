@@ -516,8 +516,11 @@ main {
   gap: 0.35rem 0.75rem;
   overflow-wrap: anywhere;
 }
-.candidate-row strong {
+.candidate-heading {
   grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 .security-row {
   display: flex;

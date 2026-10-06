@@ -615,17 +615,19 @@
       <ul>
         @for (candidate of rtc()?.candidates ?? []; track candidate.address + candidate.type) {
           <li class="candidate-row">
-            <strong>{{ candidateLabel(candidate.type) }}</strong>
+            <div class="candidate-heading">
+              <strong>{{ candidateLabel(candidate.type) }}</strong>
+              @if (candidateAnchor(candidate.type); as anchor) {
+                <a
+                  routerLink="/network-guide"
+                  [fragment]="anchor"
+                  [attr.aria-label]="'Learn about ' + candidateLabel(candidate.type)"
+                  title="Learn about this candidate type"
+                  ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
+                >
+              }
+            </div>
             <app-sensitive-value [value]="candidate.address" />
-            @if (candidateAnchor(candidate.type); as anchor) {
-              <a
-                routerLink="/network-guide"
-                [fragment]="anchor"
-                [attr.aria-label]="'Learn about ' + candidateLabel(candidate.type)"
-                title="Learn about this candidate type"
-                ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
-              >
-            }
           </li>
         }
       </ul>
