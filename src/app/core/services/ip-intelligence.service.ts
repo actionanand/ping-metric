@@ -3,6 +3,30 @@ import { environment } from '../../../environments/environment';
 import type { IpIntelligence, IpIntelligenceResult } from '../models/app.models';
 import { IpIntelligencePreferenceService } from './ip-intelligence-preference.service';
 
+const requestTimeoutMs = 8000;
+
+async function fetchProviderData(
+  url: URL,
+  externalSignal?: AbortSignal,
+): Promise<{ response: Response; data?: unknown }> {
+  if (externalSignal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
+  const controller = new AbortController();
+  const relayAbort = () => controller.abort();
+  externalSignal?.addEventListener('abort', relayAbort, { once: true });
+  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+  try {
+    const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+    if (response.status === 429) return { response };
+    const data: unknown = await response.json();
+    return { response, data };
+  } finally {
+    clearTimeout(timeout);
+    externalSignal?.removeEventListener('abort', relayAbort);
+  }
+}
+
 @Service()
 export class IpIntelligenceService {
   private readonly preference = inject(IpIntelligencePreferenceService);
@@ -17,15 +41,14 @@ export class IpIntelligenceService {
       url.searchParams.set('key', environment.ip.intelligenceApiKey);
     const keyed = Boolean(environment.ip.intelligenceApiKey);
     try {
-      let response = await fetch(url, { cache: 'no-store', signal });
+      let { response, data } = await fetchProviderData(url, signal);
       let providerMode: IpIntelligenceResult['providerMode'] = keyed ? 'keyed' : 'anonymous';
       if (response.status === 429 && keyed && !signal?.aborted) {
         const anonymousUrl = new URL(url);
         anonymousUrl.searchParams.delete('key');
-        response = await fetch(anonymousUrl, { cache: 'no-store', signal });
+        ({ response, data } = await fetchProviderData(anonymousUrl, signal));
         providerMode = 'anonymous-fallback';
       }
-      const data: unknown = await response.json();
       const value = normalize(data);
       return response.ok && value
         ? { state: 'available', value, providerMode }

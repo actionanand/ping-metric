@@ -34,7 +34,7 @@ jobs:
         run: node scripts/inject-env.js
 
       - name: Build Angular app for GitHub Pages
-        run: npm run build:gh --configuration=production
+        run: npm run build:gh -- --configuration=production
 
       - name: Copy error files to redirect to home
         run: npm run copy-error-page
@@ -44,7 +44,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          base_href: /${{ steps.package.outputs.name }}/ # make sure this corresponds to https://<your_username>.github.io/<base_href>/
-          deploy_branch: gh-pages
+          publish_branch: gh-pages
           publish_dir: dist/${{ steps.package.outputs.name }}/browser
           enable_jekyll: true

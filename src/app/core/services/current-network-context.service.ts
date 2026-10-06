@@ -1,4 +1,4 @@
-import { Service, signal } from '@angular/core';
+import { Service, signal, untracked } from '@angular/core';
 import type {
   IpAddresses,
   IpIntelligence,
@@ -13,7 +13,7 @@ export class CurrentNetworkContextService {
   updateNetwork(addresses: IpAddresses, capabilities: NetworkCapabilities): void {
     const ipv4 = addresses.ipv4.value?.address;
     const ipv6 = addresses.ipv6.value?.address;
-    const previous = this.current();
+    const previous = untracked(() => this.current());
     const samePublicAddress = Boolean(
       (ipv4 || ipv6) && previous && previous.ipv4 === ipv4 && previous.ipv6 === ipv6,
     );
@@ -47,7 +47,7 @@ export class CurrentNetworkContextService {
   }
 
   updateIntelligence(intelligence: IpIntelligence | undefined): void {
-    const current = this.current();
+    const current = untracked(() => this.current());
     if (!current) return;
     this.current.set(
       Object.freeze({
