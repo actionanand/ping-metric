@@ -87,6 +87,18 @@ export interface NetNeutralityTargetResult {
   relativeRatio?: number;
   classification: NetNeutralityTargetClassification;
 }
+export interface NetNeutralityNetworkContext {
+  protocol?: string;
+  effectiveType?: string;
+  secureContext?: boolean;
+  isp?: string;
+  asn?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  ipv4?: string;
+  ipv6?: string;
+}
 export interface NetNeutralityReport {
   id: string;
   methodologyVersion: string;
@@ -96,6 +108,7 @@ export interface NetNeutralityReport {
   configuration: Readonly<Omit<NetNeutralityConfiguration, 'targets'>>;
   rounds: readonly NetNeutralityRound[];
   targets: readonly NetNeutralityTargetResult[];
+  networkContext?: Readonly<NetNeutralityNetworkContext>;
   overall: NetNeutralityOverall;
   explanation: string;
 }

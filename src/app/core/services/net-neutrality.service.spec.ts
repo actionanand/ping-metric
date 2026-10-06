@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { environment } from '../../../environments/environment';
+import type { IpAddresses, IpIntelligence, NetworkCapabilities } from '../models/app.models';
+import { CurrentNetworkContextService } from './current-network-context.service';
 import { NetNeutralityService } from './net-neutrality.service';
 
 const originalConfiguration = environment.neutrality;
@@ -74,6 +76,20 @@ describe('NetNeutralityService', () => {
     expect(service.report()).toBe(report);
   });
 
+  it('uses five configured targets for 25 mocked requests across five rounds by default', async () => {
+    environment.neutrality = originalConfiguration;
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    const service = TestBed.inject(NetNeutralityService);
+
+    const report = await service.run();
+
+    expect(report?.targets).toHaveLength(5);
+    expect(report?.rounds).toHaveLength(5);
+    expect(report?.configuration.attempts).toBe(5);
+    expect(report?.rounds.reduce((total, round) => total + round.attempts.length, 0)).toBe(25);
+    expect(fetchMock).toHaveBeenCalledTimes(25);
+  });
+
   it('records a timed-out request without treating it as an HTTP response', async () => {
     environment.neutrality = {
       ...testConfiguration(1),
@@ -114,5 +130,64 @@ describe('NetNeutralityService', () => {
     await expect(run).resolves.toBeUndefined();
     expect(service.running()).toBe(false);
     expect(service.report()).toBeUndefined();
+  });
+
+  it('uses the network context captured at Start even if current context changes during the run', async () => {
+    environment.neutrality = {
+      ...testConfiguration(1),
+      targets: [testConfiguration(1).targets[0]],
+    };
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    const context = TestBed.inject(CurrentNetworkContextService);
+    const capabilities: NetworkCapabilities = {
+      online: true,
+      effectiveType: '4g',
+      secureContext: true,
+      webCrypto: true,
+      webRtc: true,
+      networkInformation: true,
+    };
+    const network = (ip: string, protocol: IpAddresses['protocol']): IpAddresses => ({
+      default: { state: 'available', value: { address: ip, family: 'ipv4', source: 'default' } },
+      ipv4: { state: 'available', value: { address: ip, family: 'ipv4', source: 'ipv4' } },
+      ipv6: { state: 'unavailable' },
+      protocol,
+    });
+    const provider = (ip: string, isp: string): IpIntelligence => ({
+      ip,
+      organization: isp,
+      city: isp,
+      security: {
+        vpn: undefined,
+        proxy: undefined,
+        tor: undefined,
+        datacenter: undefined,
+        abuser: undefined,
+        mobile: undefined,
+        satellite: undefined,
+        anycast: undefined,
+        bogon: undefined,
+        crawler: undefined,
+      },
+    });
+    context.updateNetwork(network('198.51.100.1', 'IPv4 only'), capabilities);
+    context.updateIntelligence(provider('198.51.100.1', 'Network A ISP'));
+    const service = TestBed.inject(NetNeutralityService);
+    const run = service.run();
+
+    context.updateNetwork(network('203.0.113.2', 'Dual stack'), {
+      ...capabilities,
+      effectiveType: '3g',
+    });
+    context.updateIntelligence(provider('203.0.113.2', 'Network B ISP'));
+    const report = await run;
+
+    expect(report?.networkContext).toMatchObject({
+      protocol: 'IPv4 only',
+      effectiveType: '4g',
+      isp: 'Network A ISP',
+      ipv4: '198.51.100.1',
+    });
+    expect(Object.isFrozen(report?.networkContext)).toBe(true);
   });
 });

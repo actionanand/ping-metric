@@ -18,7 +18,7 @@ import { NetworkInfoService } from '../../core/services/network-info.service';
 import { PrivacyDisplayService } from '../../core/services/privacy-display.service';
 import { SpeedTestService } from '../../core/services/speed-test.service';
 import { WebRtcLeakService } from '../../core/services/webrtc-leak.service';
-import { DashboardComponent } from './dashboard.component';
+import { DashboardComponent, providerStatusIcon } from './dashboard.component';
 
 const addresses: IpAddresses = {
   default: {
@@ -218,5 +218,17 @@ describe('Dashboard IP intelligence opt-in', () => {
     expect(rows[1]).toContain('Proxy');
     expect(rows[1]).toContain('Detected');
     expect(fixture.nativeElement.textContent).not.toContain('Tor');
+  });
+});
+
+describe('IP intelligence status icon', () => {
+  it('maps every provider mode explicitly instead of relying on string truthiness', () => {
+    expect(providerStatusIcon(false, false, 'disabled')).toBe('cloud_off');
+    expect(providerStatusIcon(true, false, 'disabled')).toBe('cloud_off');
+    expect(providerStatusIcon(true, false, 'keyed')).toBe('verified');
+    expect(providerStatusIcon(true, false, 'anonymous')).toBe('info');
+    expect(providerStatusIcon(true, false, 'anonymous-fallback')).toBe('info');
+    expect(providerStatusIcon(true, true, undefined)).toBe('progress_activity');
+    expect(providerStatusIcon(true, false, undefined)).toBe('cloud_off');
   });
 });

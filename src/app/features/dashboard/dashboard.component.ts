@@ -6,6 +6,7 @@ import { HistoryService } from '../../core/services/history.service';
 import { IpAddressService } from '../../core/services/ip-address.service';
 import { IpIntelligenceService } from '../../core/services/ip-intelligence.service';
 import { IpIntelligencePreferenceService } from '../../core/services/ip-intelligence-preference.service';
+import { CurrentNetworkContextService } from '../../core/services/current-network-context.service';
 import { NetworkInfoService } from '../../core/services/network-info.service';
 import { SpeedTestService } from '../../core/services/speed-test.service';
 import { WebRtcLeakService } from '../../core/services/webrtc-leak.service';
@@ -20,6 +21,18 @@ import type {
 } from '../../core/models/app.models';
 import { retransmissionPercent } from '../../shared/utils/network.utils';
 
+export function providerStatusIcon(
+  enabled: boolean,
+  loading: boolean,
+  mode: IpIntelligenceMode | undefined,
+): string {
+  if (!enabled || mode === 'disabled') return 'cloud_off';
+  if (loading) return 'progress_activity';
+  if (mode === 'keyed') return 'verified';
+  if (mode === 'anonymous' || mode === 'anonymous-fallback') return 'info';
+  return 'cloud_off';
+}
+
 @Component({
   selector: 'app-dashboard',
   imports: [NgOptimizedImage, RouterLink, DecimalPipe, SensitiveValueComponent],
@@ -33,6 +46,7 @@ export class DashboardComponent {
   protected readonly network = inject(NetworkInfoService);
   protected readonly speedUnit = inject(SpeedUnitService);
   protected readonly intelligencePreference = inject(IpIntelligencePreferenceService);
+  private readonly currentNetworkContext = inject(CurrentNetworkContextService);
   private readonly ipService = inject(IpAddressService);
   private readonly intelligenceService = inject(IpIntelligenceService);
   private readonly history = inject(HistoryService);
@@ -91,6 +105,7 @@ export class DashboardComponent {
         this.intelligence.set(undefined);
         this.intelligenceMode.set(undefined);
         this.intelligenceLoading.set(refreshing);
+        this.currentNetworkContext.updateIntelligence(undefined);
         return;
       }
 
@@ -122,6 +137,7 @@ export class DashboardComponent {
             return;
           this.intelligence.set(result.value);
           this.intelligenceMode.set(result.providerMode);
+          this.currentNetworkContext.updateIntelligence(result.value);
           this.intelligenceLoading.set(false);
         })
         .catch(() => {
@@ -129,6 +145,7 @@ export class DashboardComponent {
             return;
           this.intelligence.set(undefined);
           this.intelligenceMode.set(undefined);
+          this.currentNetworkContext.updateIntelligence(undefined);
           this.intelligenceLoading.set(false);
         });
     });
@@ -149,9 +166,11 @@ export class DashboardComponent {
     try {
       const ips = await this.ipService.lookupAll();
       this.ips.set(ips);
+      this.currentNetworkContext.updateNetwork(ips, this.network.info());
       this.lastNetworkRefresh.set(new Date());
     } catch {
       this.ips.set(undefined);
+      this.currentNetworkContext.clearNetwork(this.network.info());
     } finally {
       this.refreshingNetwork.set(false);
     }
@@ -342,6 +361,13 @@ export class DashboardComponent {
           ? 'provider-anonymous'
           : 'provider-unavailable';
   }
+  protected providerIcon(): string {
+    return providerStatusIcon(
+      this.intelligencePreference.enabled(),
+      this.intelligenceLoading(),
+      this.intelligenceMode(),
+    );
+  }
   protected speedValue(value: number | undefined): number | undefined {
     return this.speedUnit.displayValue(value);
   }
@@ -355,5 +381,6 @@ export class DashboardComponent {
     this.intelligence.set(undefined);
     this.intelligenceMode.set(mode);
     this.intelligenceLoading.set(false);
+    this.currentNetworkContext.updateIntelligence(undefined);
   }
 }

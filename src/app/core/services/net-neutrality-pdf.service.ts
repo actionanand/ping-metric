@@ -1,28 +1,14 @@
 import { Service } from '@angular/core';
 import autoTable from 'jspdf-autotable';
 import { jsPDF } from 'jspdf';
-import type { NetNeutralityReport } from '../models/app.models';
+import type { NetNeutralityNetworkContext, NetNeutralityReport } from '../models/app.models';
 
 export interface NetNeutralityExportOptions {
   includeNetworkIdentity: boolean;
   includePublicIp: boolean;
 }
 
-export interface NetNeutralityExportContext {
-  protocol?: string;
-  effectiveType?: string;
-  secureContext?: boolean;
-  isp?: string;
-  asn?: string;
-  country?: string;
-  region?: string;
-  city?: string;
-  ipv4?: string;
-  ipv6?: string;
-}
-
 export interface NetNeutralityPdfModel {
-  report: NetNeutralityReport;
   includedOptions: NetNeutralityExportOptions;
   context: {
     protocol?: string;
@@ -42,10 +28,9 @@ export interface NetNeutralityPdfModel {
 export function createNetNeutralityPdfModel(
   report: NetNeutralityReport,
   options: NetNeutralityExportOptions,
-  context: NetNeutralityExportContext,
 ): NetNeutralityPdfModel {
+  const context: Readonly<NetNeutralityNetworkContext> = report.networkContext ?? {};
   return {
-    report,
     includedOptions: { ...options },
     context: {
       protocol: context.protocol,
@@ -160,10 +145,9 @@ export class NetNeutralityPdfService {
   download(
     report: NetNeutralityReport,
     options: NetNeutralityExportOptions,
-    context: NetNeutralityExportContext,
     charts: { medians?: string; attempts?: string } = {},
   ): void {
-    const doc = this.generate(report, options, context, charts);
+    const doc = this.generate(report, options, charts);
     const timestamp = new Date(report.completedAt).toISOString();
     const stamp = `${timestamp.slice(0, 10)}-${timestamp.slice(11, 19).replaceAll(':', '')}`;
     doc.save(`pingmetric-net-neutrality-${stamp}.pdf`);
@@ -172,10 +156,9 @@ export class NetNeutralityPdfService {
   generate(
     report: NetNeutralityReport,
     options: NetNeutralityExportOptions,
-    context: NetNeutralityExportContext,
     charts: { medians?: string; attempts?: string } = {},
   ): jsPDF {
-    const model = createNetNeutralityPdfModel(report, options, context);
+    const model = createNetNeutralityPdfModel(report, options);
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const margin = 14;
     let cursorY = 18;

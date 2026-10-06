@@ -1,4 +1,4 @@
-import { Service, signal } from '@angular/core';
+import { Service, inject, signal } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import type {
   NetNeutralityAttempt,
@@ -13,6 +13,7 @@ import {
   shuffle,
   summarizeTargets,
 } from '../../shared/utils/net-neutrality.utils';
+import { CurrentNetworkContextService } from './current-network-context.service';
 
 const methodologyVersion = 'PingMetric-NN-1';
 
@@ -49,6 +50,7 @@ function explanation(overall: NetNeutralityReport['overall']): string {
 
 @Service()
 export class NetNeutralityService {
+  private readonly currentNetworkContext = inject(CurrentNetworkContextService);
   readonly running = signal(false);
   readonly progress = signal<NetNeutralityProgress | undefined>(undefined);
   readonly report = signal<NetNeutralityReport | undefined>(undefined);
@@ -60,6 +62,7 @@ export class NetNeutralityService {
     const configuration = environment.neutrality;
     const targets = configuration.targets.map((target) => ({ ...target }));
     if (!targets.length) return undefined;
+    const networkContext = this.currentNetworkContext.snapshot();
 
     const snapshotStartedAt = new Date();
     const startedAt = snapshotStartedAt.toISOString();
@@ -126,6 +129,7 @@ export class NetNeutralityService {
         configuration: snapshot(configuration),
         rounds,
         targets: summaries,
+        networkContext,
         overall,
         explanation: explanation(overall),
       });

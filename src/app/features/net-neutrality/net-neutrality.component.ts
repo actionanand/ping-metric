@@ -11,10 +11,8 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import type { NetNeutralityReport } from '../../core/models/app.models';
-import { HistoryService } from '../../core/services/history.service';
 import { NetNeutralityPdfService } from '../../core/services/net-neutrality-pdf.service';
 import { NetNeutralityService } from '../../core/services/net-neutrality.service';
-import { NetworkInfoService } from '../../core/services/network-info.service';
 
 Chart.register(...registerables);
 
@@ -28,8 +26,6 @@ export class NetNeutralityComponent implements AfterViewChecked, OnDestroy {
   protected readonly neutrality = inject(NetNeutralityService);
   protected readonly report = this.neutrality.report;
   protected readonly progress = this.neutrality.progress;
-  protected readonly history = inject(HistoryService);
-  private readonly network = inject(NetworkInfoService);
   private readonly pdf = inject(NetNeutralityPdfService);
   protected readonly includeNetworkIdentity = signal(false);
   protected readonly includePublicIp = signal(false);
@@ -69,26 +65,11 @@ export class NetNeutralityComponent implements AfterViewChecked, OnDestroy {
   }
 
   downloadPdf(report: NetNeutralityReport): void {
-    const latest = this.history.entries()[0];
-    const info = this.network.info();
-    const intelligence = latest?.intelligence;
     this.pdf.download(
       report,
       {
         includeNetworkIdentity: this.includeNetworkIdentity(),
         includePublicIp: this.includePublicIp(),
-      },
-      {
-        protocol: latest?.ip?.protocol,
-        effectiveType: info.effectiveType,
-        secureContext: info.secureContext,
-        isp: intelligence?.companyDetails?.name || intelligence?.organization,
-        asn: intelligence?.asnDetails?.asn || intelligence?.asn,
-        country: intelligence?.locationDetails?.country || intelligence?.country,
-        region: intelligence?.locationDetails?.region || intelligence?.region,
-        city: intelligence?.locationDetails?.city || intelligence?.city,
-        ipv4: latest?.ip?.ipv4.value?.address,
-        ipv6: latest?.ip?.ipv6.value?.address,
       },
       {
         medians: this.medianChart?.toBase64Image(),

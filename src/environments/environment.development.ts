@@ -31,6 +31,11 @@ export const environment: AppEnvironment = {
       { id: 'facebook', name: 'Facebook', url: 'https://www.facebook.com/favicon.ico' },
       { id: 'google', name: 'Google', url: 'https://www.google.com/generate_204' },
       { id: 'wikipedia', name: 'Wikipedia', url: 'https://www.wikipedia.org/favicon.ico' },
+      {
+        id: 'cloudflare',
+        name: 'Cloudflare',
+        url: 'https://speed.cloudflare.com/__down?bytes=0',
+      },
     ],
   },
 };

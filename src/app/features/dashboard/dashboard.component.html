@@ -283,9 +283,7 @@
       </p>
     </div>
     <div class="provider-status" [class]="providerStatusClass()">
-      <span class="material-symbols-rounded" aria-hidden="true">{{
-        intelligenceMode() === 'keyed' ? 'verified' : intelligenceMode() ? 'info' : 'cloud_off'
-      }}</span>
+      <span class="material-symbols-rounded" aria-hidden="true">{{ providerIcon() }}</span>
       <div>
         <strong>{{ providerTitle() }}</strong
         ><small>{{ providerDetail() }}</small>
