@@ -163,16 +163,25 @@
         <figure>
           <figcaption>Median response time by service</figcaption>
           <div class="chart-frame">
-            <canvas #medianCanvas aria-label="Median response time by service bar chart"></canvas>
+            <canvas
+              class="median-chart"
+              aria-label="Median response time by service bar chart"
+            ></canvas>
+            @if (chartsLoading()) {
+              <app-chart-loading-placeholder label="Loading median response time chart" />
+            }
           </div>
         </figure>
         <figure>
           <figcaption>Successful attempt timing by round</figcaption>
           <div class="chart-frame">
             <canvas
-              #attemptsCanvas
+              class="attempts-chart"
               aria-label="Successful attempt timing by round line chart"
             ></canvas>
+            @if (chartsLoading()) {
+              <app-chart-loading-placeholder label="Loading successful attempt timing chart" />
+            }
           </div>
         </figure>
       </div>

@@ -1,11 +1,12 @@
 import {
-  AfterViewChecked,
+  AfterViewInit,
   Component,
   ElementRef,
+  Injector,
   OnDestroy,
+  afterRenderEffect,
   inject,
   signal,
-  viewChild,
 } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -13,32 +14,37 @@ import { Chart, registerables } from 'chart.js';
 import type { NetNeutralityReport } from '../../core/models/app.models';
 import { NetNeutralityPdfService } from '../../core/services/net-neutrality-pdf.service';
 import { NetNeutralityService } from '../../core/services/net-neutrality.service';
+import { ChartLoadingPlaceholderComponent } from '../../shared/components/chart-loading-placeholder/chart-loading-placeholder.component';
 
 Chart.register(...registerables);
 
 @Component({
   selector: 'app-net-neutrality',
-  imports: [DatePipe, DecimalPipe, RouterLink],
+  imports: [DatePipe, DecimalPipe, RouterLink, ChartLoadingPlaceholderComponent],
   templateUrl: './net-neutrality.component.html',
   styleUrl: './net-neutrality.component.scss',
 })
-export class NetNeutralityComponent implements AfterViewChecked, OnDestroy {
+export class NetNeutralityComponent implements AfterViewInit, OnDestroy {
   protected readonly neutrality = inject(NetNeutralityService);
   protected readonly report = this.neutrality.report;
   protected readonly progress = this.neutrality.progress;
   private readonly pdf = inject(NetNeutralityPdfService);
+  private readonly injector = inject(Injector);
+  private readonly host = inject(ElementRef<HTMLElement>);
   protected readonly includeNetworkIdentity = signal(false);
   protected readonly includePublicIp = signal(false);
-  private readonly medianCanvas = viewChild<ElementRef<HTMLCanvasElement>>('medianCanvas');
-  private readonly attemptsCanvas = viewChild<ElementRef<HTMLCanvasElement>>('attemptsCanvas');
+  protected readonly chartsLoading = signal(false);
   private medianChart: Chart<'bar', number[], string> | undefined;
   private attemptsChart: Chart<'line', (number | null)[], string> | undefined;
   private renderedReportId: string | undefined;
+  private readonly viewReady = signal(false);
+  private readonly chartRenderEffect = afterRenderEffect(
+    { mixedReadWrite: () => this.renderChartsForReport() },
+    { injector: this.injector },
+  );
 
-  ngAfterViewChecked(): void {
-    const report = this.report();
-    if (report && this.renderedReportId !== report.id) this.createCharts(report);
-    if (!report && this.renderedReportId) this.destroyCharts();
+  ngAfterViewInit(): void {
+    this.viewReady.set(true);
   }
 
   ngOnDestroy(): void {
@@ -47,6 +53,7 @@ export class NetNeutralityComponent implements AfterViewChecked, OnDestroy {
 
   async start(): Promise<void> {
     this.destroyCharts();
+    this.chartsLoading.set(true);
     this.includeNetworkIdentity.set(false);
     this.includePublicIp.set(false);
     await this.neutrality.run();
@@ -120,8 +127,7 @@ export class NetNeutralityComponent implements AfterViewChecked, OnDestroy {
       .map((token) => getComputedStyle(document.documentElement).getPropertyValue(token).trim())
       .map((color, index) => color || ['#1682b2', '#d16b32', '#7b61a8', '#208a68'][index]);
     const measured = report.targets.filter((target) => target.medianMs !== undefined);
-    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const medianElement = this.medianCanvas()?.nativeElement;
+    const medianElement = this.canvas('.median-chart');
     if (medianElement) {
       this.medianChart = new Chart(medianElement, {
         type: 'bar',
@@ -138,7 +144,7 @@ export class NetNeutralityComponent implements AfterViewChecked, OnDestroy {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animation: reducedMotion ? false : { duration: 250 },
+          animation: false,
           scales: {
             y: { beginAtZero: true, ticks: { color: textColor } },
             x: { ticks: { color: textColor } },
@@ -147,7 +153,7 @@ export class NetNeutralityComponent implements AfterViewChecked, OnDestroy {
         },
       });
     }
-    const attemptsElement = this.attemptsCanvas()?.nativeElement;
+    const attemptsElement = this.canvas('.attempts-chart');
     if (attemptsElement) {
       const rounds = report.rounds.map((round) => round.round);
       this.attemptsChart = new Chart(attemptsElement, {
@@ -168,7 +174,7 @@ export class NetNeutralityComponent implements AfterViewChecked, OnDestroy {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animation: reducedMotion ? false : { duration: 250 },
+          animation: false,
           scales: {
             y: {
               beginAtZero: true,
@@ -184,7 +190,30 @@ export class NetNeutralityComponent implements AfterViewChecked, OnDestroy {
         },
       });
     }
-    this.renderedReportId = report.id;
+    if (this.medianChart || this.attemptsChart) this.renderedReportId = report.id;
+  }
+
+  private renderChartsForReport(): void {
+    const report = this.report();
+    if (!this.viewReady()) return;
+    if (!report) {
+      this.destroyCharts();
+      this.chartsLoading.set(false);
+      return;
+    }
+    if (this.renderedReportId === report.id) return;
+    this.chartsLoading.set(true);
+    this.createCharts(report);
+    this.medianChart?.resize();
+    this.attemptsChart?.resize();
+    this.medianChart?.update('none');
+    this.attemptsChart?.update('none');
+    this.chartsLoading.set(false);
+  }
+
+  private canvas(selector: string): HTMLCanvasElement | undefined {
+    const host = this.host.nativeElement as HTMLElement;
+    return host.querySelector<HTMLCanvasElement>(selector) ?? undefined;
   }
 
   private destroyCharts(): void {

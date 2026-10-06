@@ -138,6 +138,12 @@ figcaption {
   display: block;
   max-width: 100%;
 }
+.chart-frame app-chart-loading-placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--surface);
+}
 .round-details {
   padding-top: 0.5rem;
   border-top: 1px solid var(--border);
