@@ -455,18 +455,6 @@ details dl {
   .topbar {
     border: 0;
   }
-  .desktop-nav {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  .desktop-nav a {
-    color: var(--muted);
-    text-decoration: none;
-  }
-  .menu-button {
-    display: none;
-  }
   .hero {
     grid-template-columns: 1fr auto;
     align-items: center;
@@ -487,6 +475,18 @@ details dl {
   }
 }
 @media (min-width: 64rem) {
+  .desktop-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .desktop-nav a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .menu-button {
+    display: none;
+  }
   main {
     padding-inline: 2rem;
   }

@@ -28,8 +28,8 @@ import { retransmissionPercent } from '../../shared/utils/network.utils';
 export class DashboardComponent {
   protected readonly auth = inject(AuthService);
   protected readonly speed = inject(SpeedTestService);
-  protected readonly network = inject(NetworkInfoService);
   protected readonly privacy = inject(PrivacyDisplayService);
+  protected readonly network = inject(NetworkInfoService);
   protected readonly speedUnit = inject(SpeedUnitService);
   private readonly ipService = inject(IpAddressService);
   private readonly intelligenceService = inject(IpIntelligenceService);
@@ -135,6 +135,7 @@ export class DashboardComponent {
   }
   async lock(): Promise<void> {
     this.closeNavigation();
+    this.privacy.hide();
     this.auth.lock();
     await this.router.navigateByUrl('/lock');
   }
