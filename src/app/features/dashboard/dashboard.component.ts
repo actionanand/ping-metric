@@ -75,17 +75,24 @@ export class DashboardComponent {
     if (this.refreshingNetwork()) return;
     this.refreshingNetwork.set(true);
     this.intelligenceMessage.set(undefined);
-    const ips = await this.ipService.lookupAll();
-    this.ips.set(ips);
-    const ip = ips.default.value?.address ?? ips.ipv4.value?.address ?? ips.ipv6.value?.address;
-    if (ip) {
-      const result = await this.intelligenceService.lookup(ip);
-      this.intelligence.set(result.value);
-      this.intelligenceMode.set(result.providerMode);
-      this.intelligenceMessage.set(result.message);
+    try {
+      const ips = await this.ipService.lookupAll();
+      this.ips.set(ips);
+      const ip = ips.default.value?.address ?? ips.ipv4.value?.address ?? ips.ipv6.value?.address;
+      if (ip) {
+        const result = await this.intelligenceService.lookup(ip);
+        this.intelligence.set(result.value);
+        this.intelligenceMode.set(result.providerMode);
+        this.intelligenceMessage.set(result.message);
+      }
+      this.lastNetworkRefresh.set(new Date());
+    } catch {
+      this.intelligence.set(undefined);
+      this.intelligenceMode.set(undefined);
+      this.intelligenceMessage.set('Network information could not be refreshed.');
+    } finally {
+      this.refreshingNetwork.set(false);
     }
-    this.lastNetworkRefresh.set(new Date());
-    this.refreshingNetwork.set(false);
   }
   requestTest(): void {
     if (this.consent()) {
@@ -138,6 +145,15 @@ export class DashboardComponent {
     );
     return `${(value / 1000 ** index).toLocaleString(undefined, { maximumFractionDigits: 1 })} ${units[index]}`;
   }
+  protected present(value: string | number | undefined | null): string {
+    return value === undefined || value === null || value === '' ? 'Not available' : String(value);
+  }
+  protected coordinates(): string {
+    const location = this.intelligence()?.locationDetails;
+    return location?.latitude === undefined || location.longitude === undefined
+      ? 'Not available'
+      : `${location.latitude}, ${location.longitude}`;
+  }
   protected providerTitle(): string {
     return this.intelligenceMode() === 'keyed'
       ? 'Full IP intelligence'
@@ -168,5 +184,14 @@ export class DashboardComponent {
   }
   protected securityValue(key: keyof IpIntelligence['security']): boolean | undefined {
     return this.intelligence()?.security[key];
+  }
+  protected providerStatusClass(): string {
+    return this.intelligenceMode() === 'keyed'
+      ? 'provider-keyed'
+      : this.intelligenceMode() === 'anonymous-fallback'
+        ? 'provider-fallback'
+        : this.intelligenceMode() === 'anonymous'
+          ? 'provider-anonymous'
+          : 'provider-unavailable';
   }
 }

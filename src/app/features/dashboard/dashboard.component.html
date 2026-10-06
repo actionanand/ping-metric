@@ -55,7 +55,7 @@
   <section class="hero" aria-labelledby="dashboard-title">
     <div>
       <p class="eyebrow">
-        <span class="status-dot" aria-hidden="true"></span
+        <span class="status-dot" [class.offline]="!network.info().online" aria-hidden="true"></span
         >{{ network.info().online ? 'Connected' : 'Offline' }}
       </p>
       <h1 id="dashboard-title">Connection diagnostics</h1>
@@ -171,7 +171,7 @@
         {{ network.info().effectiveType || 'Browser estimate unavailable' }}
       </p>
     </div>
-    <div class="provider-status" [class.warning-mode]="intelligenceMode() === 'anonymous-fallback'">
+    <div class="provider-status" [class]="providerStatusClass()">
       <span class="material-symbols-rounded" aria-hidden="true">{{
         intelligenceMode() === 'keyed' ? 'verified' : intelligenceMode() ? 'info' : 'cloud_off'
       }}</span>
@@ -231,84 +231,87 @@
           <h3>Provider</h3>
           <dl>
             <dt>Provider</dt>
-            <dd>{{ intelligence()?.companyDetails?.name || intelligence()?.organization }}</dd>
+            <dd>
+              {{ present(intelligence()?.companyDetails?.name || intelligence()?.organization) }}
+            </dd>
             <dt>Network type</dt>
             <dd>
               <span class="detail-badge">{{
-                intelligence()?.companyDetails?.type || intelligence()?.companyType
+                present(intelligence()?.companyDetails?.type || intelligence()?.companyType)
               }}</span>
             </dd>
             <dt>Domain</dt>
-            <dd>{{ intelligence()?.companyDetails?.domain }}</dd>
+            <dd>{{ present(intelligence()?.companyDetails?.domain) }}</dd>
             <dt>Network</dt>
             <dd class="mono">
-              {{ intelligence()?.companyDetails?.network || intelligence()?.network }}
+              {{ present(intelligence()?.companyDetails?.network || intelligence()?.network) }}
             </dd>
             <dt>Netname</dt>
-            <dd class="mono">{{ intelligence()?.companyDetails?.netname }}</dd>
+            <dd class="mono">{{ present(intelligence()?.companyDetails?.netname) }}</dd>
             <dt>Provider reputation</dt>
-            <dd>{{ intelligence()?.companyDetails?.abuserScore }}</dd>
+            <dd>{{ present(intelligence()?.companyDetails?.abuserScore) }}</dd>
           </dl>
         </section>
         <section class="detail-group">
           <h3>ASN</h3>
           <dl>
             <dt>ASN</dt>
-            <dd class="mono">{{ intelligence()?.asnDetails?.asn || intelligence()?.asn }}</dd>
+            <dd class="mono">
+              {{ present(intelligence()?.asnDetails?.asn || intelligence()?.asn) }}
+            </dd>
             <dt>Route</dt>
-            <dd class="mono">{{ intelligence()?.asnDetails?.route }}</dd>
+            <dd class="mono">{{ present(intelligence()?.asnDetails?.route) }}</dd>
             <dt>Description</dt>
-            <dd>{{ intelligence()?.asnDetails?.description }}</dd>
+            <dd>{{ present(intelligence()?.asnDetails?.description) }}</dd>
             <dt>Organization</dt>
-            <dd>{{ intelligence()?.asnDetails?.organization }}</dd>
+            <dd>{{ present(intelligence()?.asnDetails?.organization) }}</dd>
             <dt>Country</dt>
-            <dd>{{ intelligence()?.asnDetails?.country }}</dd>
+            <dd>{{ present(intelligence()?.asnDetails?.country) }}</dd>
             <dt>Status</dt>
             <dd>
               {{
                 intelligence()?.asnDetails?.active === undefined
-                  ? ''
+                  ? 'Not available'
                   : intelligence()?.asnDetails?.active
                     ? 'Active'
                     : 'Inactive'
               }}
             </dd>
             <dt>Domain</dt>
-            <dd>{{ intelligence()?.asnDetails?.domain }}</dd>
+            <dd>{{ present(intelligence()?.asnDetails?.domain) }}</dd>
             <dt>RIR</dt>
-            <dd>{{ intelligence()?.asnDetails?.rir || intelligence()?.rir }}</dd>
+            <dd>{{ present(intelligence()?.asnDetails?.rir || intelligence()?.rir) }}</dd>
             <dt>Updated</dt>
-            <dd>{{ intelligence()?.asnDetails?.updated }}</dd>
+            <dd>{{ present(intelligence()?.asnDetails?.updated) }}</dd>
             <dt>ASN reputation</dt>
-            <dd>{{ intelligence()?.asnDetails?.abuserScore }}</dd>
+            <dd>{{ present(intelligence()?.asnDetails?.abuserScore) }}</dd>
           </dl>
         </section>
         <section class="detail-group">
           <h3>Approximate IP-based location</h3>
           <dl>
             <dt>City</dt>
-            <dd>{{ intelligence()?.locationDetails?.city }}</dd>
+            <dd>{{ present(intelligence()?.locationDetails?.city) }}</dd>
             <dt>Region</dt>
-            <dd>{{ intelligence()?.locationDetails?.region }}</dd>
+            <dd>{{ present(intelligence()?.locationDetails?.region) }}</dd>
             <dt>Country</dt>
-            <dd>{{ intelligence()?.locationDetails?.country }}</dd>
+            <dd>{{ present(intelligence()?.locationDetails?.country) }}</dd>
             <dt>Postal code</dt>
-            <dd>{{ intelligence()?.locationDetails?.postalCode }}</dd>
+            <dd>{{ present(intelligence()?.locationDetails?.postalCode) }}</dd>
             <dt>Timezone</dt>
-            <dd>{{ intelligence()?.locationDetails?.timezone }}</dd>
+            <dd>{{ present(intelligence()?.locationDetails?.timezone) }}</dd>
             <dt>UTC offset</dt>
-            <dd>{{ intelligence()?.locationDetails?.utcOffset }}</dd>
+            <dd>{{ present(intelligence()?.locationDetails?.utcOffset) }}</dd>
             <dt>Accuracy</dt>
             <dd>
-              <span class="detail-badge">{{ intelligence()?.locationDetails?.accuracy }}</span>
+              <span class="detail-badge">{{
+                present(intelligence()?.locationDetails?.accuracy)
+              }}</span>
             </dd>
             <dt>Coordinates</dt>
-            <dd>
-              {{ intelligence()?.locationDetails?.latitude }},
-              {{ intelligence()?.locationDetails?.longitude }}
-            </dd>
+            <dd>{{ coordinates() }}</dd>
             <dt>Local time</dt>
-            <dd>{{ intelligence()?.locationDetails?.localTime }}</dd>
+            <dd>{{ present(intelligence()?.locationDetails?.localTime) }}</dd>
           </dl>
         </section>
         @if (intelligence()?.abuseDetails) {
@@ -319,13 +322,13 @@
             </p>
             <dl>
               <dt>Organization</dt>
-              <dd>{{ intelligence()?.abuseDetails?.name }}</dd>
+              <dd>{{ present(intelligence()?.abuseDetails?.name) }}</dd>
               <dt>Email</dt>
-              <dd>{{ intelligence()?.abuseDetails?.email }}</dd>
+              <dd>{{ present(intelligence()?.abuseDetails?.email) }}</dd>
               <dt>Phone</dt>
-              <dd>{{ intelligence()?.abuseDetails?.phone }}</dd>
+              <dd>{{ present(intelligence()?.abuseDetails?.phone) }}</dd>
               <dt>Address</dt>
-              <dd>{{ intelligence()?.abuseDetails?.address }}</dd>
+              <dd>{{ present(intelligence()?.abuseDetails?.address) }}</dd>
             </dl>
           </section>
         }
