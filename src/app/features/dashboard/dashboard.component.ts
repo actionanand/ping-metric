@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { NgOptimizedImage, DecimalPipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -8,7 +8,12 @@ import { IpIntelligenceService } from '../../core/services/ip-intelligence.servi
 import { NetworkInfoService } from '../../core/services/network-info.service';
 import { SpeedTestService } from '../../core/services/speed-test.service';
 import { WebRtcLeakService } from '../../core/services/webrtc-leak.service';
-import type { IpAddresses, IpIntelligence, WebRtcLeakResult } from '../../core/models/app.models';
+import type {
+  IpAddresses,
+  IpIntelligence,
+  IpIntelligenceMode,
+  WebRtcLeakResult,
+} from '../../core/models/app.models';
 import { retransmissionPercent } from '../../shared/utils/network.utils';
 
 @Component({
@@ -30,7 +35,26 @@ export class DashboardComponent {
     viewChild.required<ElementRef<HTMLDialogElement>>('mobileNavigation');
   protected readonly ips = signal<IpAddresses | undefined>(undefined);
   protected readonly intelligence = signal<IpIntelligence | undefined>(undefined);
+  protected readonly intelligenceMode = signal<IpIntelligenceMode | undefined>(undefined);
+  protected readonly intelligenceMessage = signal<string | undefined>(undefined);
+  protected readonly refreshingNetwork = signal(false);
+  protected readonly lastNetworkRefresh = signal<Date | undefined>(undefined);
   protected readonly rtc = signal<WebRtcLeakResult | undefined>(undefined);
+  protected readonly securityRows = computed(
+    () =>
+      [
+        ['VPN', 'vpn', 'factual'],
+        ['Proxy', 'proxy', 'factual'],
+        ['Tor', 'tor', 'factual'],
+        ['Datacenter', 'datacenter', 'factual'],
+        ['Known abusive IP', 'abuser', 'risk'],
+        ['Mobile network', 'mobile', 'informational'],
+        ['Satellite', 'satellite', 'informational'],
+        ['Anycast', 'anycast', 'informational'],
+        ['Bogon / reserved', 'bogon', 'risk'],
+        ['Crawler / bot', 'crawler', 'informational'],
+      ] as const,
+  );
   protected readonly consent = signal(
     localStorage.getItem('ping-metric.mlab-consent') === 'accepted',
   );
@@ -48,13 +72,20 @@ export class DashboardComponent {
     if (event.target === event.currentTarget) this.closeNavigation();
   }
   async refreshNetwork(): Promise<void> {
+    if (this.refreshingNetwork()) return;
+    this.refreshingNetwork.set(true);
+    this.intelligenceMessage.set(undefined);
     const ips = await this.ipService.lookupAll();
     this.ips.set(ips);
     const ip = ips.default.value?.address ?? ips.ipv4.value?.address ?? ips.ipv6.value?.address;
     if (ip) {
       const result = await this.intelligenceService.lookup(ip);
       this.intelligence.set(result.value);
+      this.intelligenceMode.set(result.providerMode);
+      this.intelligenceMessage.set(result.message);
     }
+    this.lastNetworkRefresh.set(new Date());
+    this.refreshingNetwork.set(false);
   }
   requestTest(): void {
     if (this.consent()) {
@@ -97,5 +128,45 @@ export class DashboardComponent {
   }
   protected retransmission(): number | undefined {
     return retransmissionPercent(this.speed.upload().tcp ?? this.speed.download().tcp);
+  }
+  protected bytes(value: number | undefined): string {
+    if (value === undefined) return '—';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const index = Math.min(
+      Math.floor(Math.log(Math.max(value, 1)) / Math.log(1000)),
+      units.length - 1,
+    );
+    return `${(value / 1000 ** index).toLocaleString(undefined, { maximumFractionDigits: 1 })} ${units[index]}`;
+  }
+  protected providerTitle(): string {
+    return this.intelligenceMode() === 'keyed'
+      ? 'Full IP intelligence'
+      : this.intelligenceMode()
+        ? 'Basic IP intelligence'
+        : 'IP intelligence unavailable';
+  }
+  protected providerDetail(): string {
+    return this.intelligenceMode() === 'keyed'
+      ? 'ipapi.is authenticated'
+      : this.intelligenceMode() === 'anonymous-fallback'
+        ? 'Daily API quota reached · anonymous fallback active'
+        : this.intelligenceMode() === 'anonymous'
+          ? 'ipapi.is anonymous mode'
+          : 'Speed testing and local browser diagnostics still work';
+  }
+  protected securityText(value: boolean | undefined): string {
+    return value === undefined ? 'Not available' : value ? 'Detected' : 'Not detected';
+  }
+  protected securityClass(kind: string, value: boolean | undefined): string {
+    if (value === undefined) return 'status-neutral';
+    if (!value) return 'status-good';
+    return kind === 'risk'
+      ? 'status-risk'
+      : kind === 'informational'
+        ? 'status-info'
+        : 'status-neutral';
+  }
+  protected securityValue(key: keyof IpIntelligence['security']): boolean | undefined {
+    return this.intelligence()?.security[key];
   }
 }
