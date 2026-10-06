@@ -117,7 +117,7 @@ describe('IP intelligence lookup', () => {
         network: '203.0.113.0/24',
       },
     });
-    expect(Object.values(result.value?.security ?? {})).toHaveLength(8);
+    expect(Object.values(result.value?.security ?? {})).toHaveLength(10);
     expect(Object.values(result.value?.security ?? {}).every((flag) => flag === undefined)).toBe(
       true,
     );

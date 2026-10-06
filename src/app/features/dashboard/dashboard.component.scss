@@ -86,6 +86,9 @@ main {
   border-radius: 50%;
   background: var(--metric-success);
 }
+.status-dot.offline {
+  background: var(--metric-neutral);
+}
 .hero h1 {
   margin: 0.2rem 0;
   font-size: clamp(2rem, 10vw, 3rem);
@@ -254,9 +257,12 @@ main {
   align-items: flex-start;
   padding: 0.75rem;
   border-radius: 0.7rem;
+  background: var(--metric-neutral-soft);
+}
+.provider-status.provider-keyed {
   background: var(--metric-success-soft);
 }
-.provider-status.warning-mode {
+.provider-status.provider-fallback {
   background: var(--metric-warning-soft);
 }
 .provider-status strong,
@@ -268,10 +274,19 @@ main {
   color: var(--muted);
 }
 .provider-status .material-symbols-rounded {
+  color: var(--metric-neutral);
+}
+.provider-keyed .material-symbols-rounded {
   color: var(--metric-success);
 }
-.warning-mode .material-symbols-rounded {
+.provider-fallback .material-symbols-rounded {
   color: var(--metric-warning);
+}
+.provider-unavailable {
+  background: var(--metric-danger-soft);
+}
+.provider-unavailable .material-symbols-rounded {
+  color: var(--metric-danger);
 }
 .actions {
   display: grid;
