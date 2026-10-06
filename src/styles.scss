@@ -170,6 +170,18 @@ input:focus-visible {
   outline: 3px solid #eab308;
   outline-offset: 3px;
 }
+.dashboard-back-link {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+.dashboard-back-link .material-symbols-rounded {
+  font-size: 1.1rem;
+  line-height: 1;
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

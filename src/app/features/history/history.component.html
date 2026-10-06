@@ -1,5 +1,7 @@
 <main class="page">
-  <a routerLink="/">← Dashboard</a>
+  <a class="dashboard-back-link" routerLink="/">
+    <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Dashboard
+  </a>
   <h1>Test history</h1>
   <button
     class="secondary"
@@ -9,7 +11,10 @@
   >
     {{ privacy.sensitiveVisible() ? 'Hide sensitive info' : 'Show sensitive info' }}
   </button>
-  <p>Completed normalized results are stored only in this browser.</p>
+  <p>
+    Completed normalized results are stored only in this browser. The
+    {{ history.maximumEntries }} most recent completed tests are retained.
+  </p>
   @if (history.entries().length) {
     <section class="summary">
       <span

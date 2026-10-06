@@ -1,13 +1,15 @@
 import { Service, computed, signal } from '@angular/core';
 import type { StoredSpeedTestResult } from '../models/app.models';
+import { environment } from '../../../environments/environment';
 
 const key = 'ping-metric.history.v1';
 @Service()
 export class HistoryService {
+  readonly maximumEntries = Math.max(1, Math.floor(environment.history.maxEntries));
   readonly entries = signal<StoredSpeedTestResult[]>(this.read());
   readonly summary = computed(() => summary(this.entries()));
   add(value: StoredSpeedTestResult): void {
-    this.entries.update((entries) => [value, ...entries].slice(0, 50));
+    this.entries.update((entries) => [value, ...entries].slice(0, this.maximumEntries));
     this.save();
   }
   remove(id: string): void {
@@ -21,7 +23,11 @@ export class HistoryService {
   private read(): StoredSpeedTestResult[] {
     try {
       const stored: unknown = JSON.parse(localStorage.getItem(key) ?? '[]');
-      return Array.isArray(stored) ? stored.filter(isStored) : [];
+      const validEntries = Array.isArray(stored) ? stored.filter(isStored) : [];
+      const retainedEntries = validEntries.slice(0, this.maximumEntries);
+      if (retainedEntries.length !== validEntries.length)
+        localStorage.setItem(key, JSON.stringify(retainedEntries));
+      return retainedEntries;
     } catch {
       return [];
     }

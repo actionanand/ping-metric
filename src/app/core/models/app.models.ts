@@ -29,6 +29,7 @@ export interface AppEnvironment {
     intelligenceApiKey: string;
   };
   latency: { probeUrl: string; attempts: number; timeoutMs: number };
+  history: { maxEntries: number };
   webrtc: { stunUrls: string[] };
   neutrality: NetNeutralityConfiguration;
 }
