@@ -1,6 +1,6 @@
 import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { NgOptimizedImage, DecimalPipe } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { HistoryService } from '../../core/services/history.service';
 import { IpAddressService } from '../../core/services/ip-address.service';
@@ -40,6 +40,7 @@ export function providerStatusIcon(
   imports: [
     NgOptimizedImage,
     RouterLink,
+    RouterLinkActive,
     DecimalPipe,
     SensitiveValueComponent,
     LoadingIndicatorComponent,

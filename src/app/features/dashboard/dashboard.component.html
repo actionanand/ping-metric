@@ -46,9 +46,12 @@
 >
   <div class="drawer-content">
     <div class="drawer-heading">
-      <strong>PingMetric</strong
-      ><button
-        class="quiet"
+      <a class="drawer-brand" routerLink="/" (click)="closeNavigation()">
+        <img ngSrc="ping-metric.png" width="36" height="36" alt="" />
+        <span><strong>PingMetric</strong><small>Connection diagnostics</small></span>
+      </a>
+      <button
+        class="drawer-close"
         type="button"
         aria-label="Close navigation"
         (click)="closeNavigation()"
@@ -56,16 +59,59 @@
         <span class="material-symbols-rounded" aria-hidden="true">close</span>
       </button>
     </div>
-    <nav>
-      <a routerLink="/" (click)="closeNavigation()">Dashboard</a
-      ><a routerLink="/history" (click)="closeNavigation()">History</a
-      ><a routerLink="/network-guide" (click)="closeNavigation()">Network Guide</a
-      ><a routerLink="/net-neutrality" (click)="closeNavigation()">
-        <span class="material-symbols-rounded" aria-hidden="true">balance</span>Net Neutrality </a
-      ><a routerLink="/settings" (click)="closeNavigation()">Settings</a
-      ><a routerLink="/about" (click)="closeNavigation()">About</a
-      ><button
-        class="quiet"
+    <nav aria-label="Mobile primary navigation">
+      <a
+        class="drawer-link"
+        routerLink="/"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        (click)="closeNavigation()"
+      >
+        <span class="material-symbols-rounded" aria-hidden="true">dashboard</span>Dashboard
+      </a>
+      <a
+        class="drawer-link"
+        routerLink="/history"
+        routerLinkActive="active"
+        (click)="closeNavigation()"
+      >
+        <span class="material-symbols-rounded" aria-hidden="true">history</span>History
+      </a>
+      <a
+        class="drawer-link"
+        routerLink="/network-guide"
+        routerLinkActive="active"
+        (click)="closeNavigation()"
+      >
+        <span class="material-symbols-rounded" aria-hidden="true">school</span>Network Guide
+      </a>
+      <a
+        class="drawer-link"
+        routerLink="/net-neutrality"
+        routerLinkActive="active"
+        (click)="closeNavigation()"
+      >
+        <span class="material-symbols-rounded" aria-hidden="true">balance</span>Net Neutrality
+      </a>
+      <a
+        class="drawer-link"
+        routerLink="/settings"
+        routerLinkActive="active"
+        (click)="closeNavigation()"
+      >
+        <span class="material-symbols-rounded" aria-hidden="true">settings</span>Settings
+      </a>
+      <a
+        class="drawer-link"
+        routerLink="/about"
+        routerLinkActive="active"
+        (click)="closeNavigation()"
+      >
+        <span class="material-symbols-rounded" aria-hidden="true">info</span>About
+      </a>
+      <span class="drawer-divider" aria-hidden="true"></span>
+      <button
+        class="drawer-action"
         type="button"
         [attr.aria-pressed]="privacy.sensitiveVisible()"
         (click)="privacy.toggle()"
@@ -73,8 +119,11 @@
         <span class="material-symbols-rounded" aria-hidden="true">{{
           privacy.sensitiveVisible() ? 'visibility_off' : 'visibility'
         }}</span>
-        {{ privacy.sensitiveVisible() ? 'Hide sensitive info' : 'Show sensitive info' }}</button
-      ><button class="quiet" type="button" (click)="lock()">Lock</button>
+        {{ privacy.sensitiveVisible() ? 'Hide sensitive info' : 'Show sensitive info' }}
+      </button>
+      <button class="drawer-lock" type="button" (click)="lock()">
+        <span class="material-symbols-rounded" aria-hidden="true">lock</span>Lock dashboard
+      </button>
     </nav>
   </div>
 </dialog>
