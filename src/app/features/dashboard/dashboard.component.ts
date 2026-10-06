@@ -1,10 +1,11 @@
-import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { NgOptimizedImage, DecimalPipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { HistoryService } from '../../core/services/history.service';
 import { IpAddressService } from '../../core/services/ip-address.service';
 import { IpIntelligenceService } from '../../core/services/ip-intelligence.service';
+import { IpIntelligencePreferenceService } from '../../core/services/ip-intelligence-preference.service';
 import { NetworkInfoService } from '../../core/services/network-info.service';
 import { SpeedTestService } from '../../core/services/speed-test.service';
 import { WebRtcLeakService } from '../../core/services/webrtc-leak.service';
@@ -31,40 +32,106 @@ export class DashboardComponent {
   protected readonly privacy = inject(PrivacyDisplayService);
   protected readonly network = inject(NetworkInfoService);
   protected readonly speedUnit = inject(SpeedUnitService);
+  protected readonly intelligencePreference = inject(IpIntelligencePreferenceService);
   private readonly ipService = inject(IpAddressService);
   private readonly intelligenceService = inject(IpIntelligenceService);
   private readonly history = inject(HistoryService);
   private readonly webrtc = inject(WebRtcLeakService);
   private readonly router = inject(Router);
+  private intelligenceAbortController: AbortController | undefined;
+  private intelligenceRequestGeneration = 0;
+  private requestedIntelligenceIp: string | undefined;
   protected readonly mobileNavigation =
     viewChild.required<ElementRef<HTMLDialogElement>>('mobileNavigation');
   protected readonly ips = signal<IpAddresses | undefined>(undefined);
   protected readonly intelligence = signal<IpIntelligence | undefined>(undefined);
-  protected readonly intelligenceMode = signal<IpIntelligenceMode | undefined>(undefined);
-  protected readonly intelligenceMessage = signal<string | undefined>(undefined);
+  protected readonly intelligenceMode = signal<IpIntelligenceMode | undefined>('disabled');
+  protected readonly intelligenceLoading = signal(false);
   protected readonly refreshingNetwork = signal(false);
   protected readonly lastNetworkRefresh = signal<Date | undefined>(undefined);
   protected readonly rtc = signal<WebRtcLeakResult | undefined>(undefined);
-  protected readonly securityRows = computed(
-    () =>
-      [
-        ['VPN', 'vpn', 'factual'],
-        ['Proxy', 'proxy', 'factual'],
-        ['Tor', 'tor', 'factual'],
-        ['Datacenter', 'datacenter', 'factual'],
-        ['Known abusive IP', 'abuser', 'risk'],
-        ['Mobile network', 'mobile', 'informational'],
-        ['Satellite', 'satellite', 'informational'],
-        ['Anycast', 'anycast', 'informational'],
-        ['Bogon / reserved', 'bogon', 'risk'],
-        ['Crawler / bot', 'crawler', 'informational'],
-      ] as const,
-  );
+  protected readonly securityRows = computed(() => {
+    const rows = [
+      ['VPN', 'vpn', 'factual'],
+      ['Proxy', 'proxy', 'factual'],
+      ['Tor', 'tor', 'factual'],
+      ['Datacenter', 'datacenter', 'factual'],
+      ['Known abusive IP', 'abuser', 'risk'],
+      ['Mobile network', 'mobile', 'informational'],
+      ['Satellite', 'satellite', 'informational'],
+      ['Anycast', 'anycast', 'informational'],
+      ['Bogon / reserved', 'bogon', 'risk'],
+      ['Crawler / bot', 'crawler', 'informational'],
+    ] as const;
+    const intelligence = this.intelligence();
+    return rows.filter(([, key]) => typeof intelligence?.security[key] === 'boolean');
+  });
   protected readonly consent = signal(
     localStorage.getItem('ping-metric.mlab-consent') === 'accepted',
   );
   protected readonly showDisclosure = signal(false);
   constructor() {
+    effect((onCleanup) => {
+      const enabled = this.intelligencePreference.enabled();
+      const addresses = this.ips();
+
+      if (!enabled) {
+        this.cancelIntelligenceRequest();
+        this.clearIntelligence('disabled');
+        return;
+      }
+
+      const ip =
+        addresses?.default.value?.address ??
+        addresses?.ipv4.value?.address ??
+        addresses?.ipv6.value?.address;
+      if (!ip) {
+        const refreshing = this.refreshingNetwork();
+        this.cancelIntelligenceRequest();
+        this.intelligence.set(undefined);
+        this.intelligenceMode.set(undefined);
+        this.intelligenceLoading.set(refreshing);
+        return;
+      }
+
+      if (
+        this.requestedIntelligenceIp === ip &&
+        this.intelligenceAbortController &&
+        !this.intelligenceAbortController.signal.aborted
+      )
+        return;
+
+      this.intelligenceAbortController?.abort();
+      const controller = new AbortController();
+      this.intelligenceAbortController = controller;
+      this.requestedIntelligenceIp = ip;
+      const generation = ++this.intelligenceRequestGeneration;
+      this.intelligence.set(undefined);
+      this.intelligenceMode.set(undefined);
+      this.intelligenceLoading.set(true);
+      onCleanup(() => controller.abort());
+
+      void this.intelligenceService
+        .lookup(ip, controller.signal)
+        .then((result) => {
+          if (
+            controller.signal.aborted ||
+            generation !== this.intelligenceRequestGeneration ||
+            !this.intelligencePreference.enabled()
+          )
+            return;
+          this.intelligence.set(result.value);
+          this.intelligenceMode.set(result.providerMode);
+          this.intelligenceLoading.set(false);
+        })
+        .catch(() => {
+          if (controller.signal.aborted || generation !== this.intelligenceRequestGeneration)
+            return;
+          this.intelligence.set(undefined);
+          this.intelligenceMode.set(undefined);
+          this.intelligenceLoading.set(false);
+        });
+    });
     void this.refreshNetwork();
   }
   openNavigation(): void {
@@ -79,25 +146,26 @@ export class DashboardComponent {
   async refreshNetwork(): Promise<void> {
     if (this.refreshingNetwork()) return;
     this.refreshingNetwork.set(true);
-    this.intelligenceMessage.set(undefined);
     try {
       const ips = await this.ipService.lookupAll();
       this.ips.set(ips);
-      const ip = ips.default.value?.address ?? ips.ipv4.value?.address ?? ips.ipv6.value?.address;
-      if (ip) {
-        const result = await this.intelligenceService.lookup(ip);
-        this.intelligence.set(result.value);
-        this.intelligenceMode.set(result.providerMode);
-        this.intelligenceMessage.set(result.message);
-      }
       this.lastNetworkRefresh.set(new Date());
     } catch {
-      this.intelligence.set(undefined);
-      this.intelligenceMode.set(undefined);
-      this.intelligenceMessage.set('Network information could not be refreshed.');
+      this.ips.set(undefined);
     } finally {
       this.refreshingNetwork.set(false);
     }
+  }
+  setIntelligenceEnabled(enabled: boolean): void {
+    this.intelligencePreference.setEnabled(enabled);
+    if (enabled) {
+      this.intelligence.set(undefined);
+      this.intelligenceMode.set(undefined);
+      this.intelligenceLoading.set(true);
+      return;
+    }
+    this.cancelIntelligenceRequest();
+    this.clearIntelligence('disabled');
   }
   requestTest(): void {
     if (this.consent()) {
@@ -154,27 +222,100 @@ export class DashboardComponent {
   protected present(value: string | number | undefined | null): string {
     return value === undefined || value === null || value === '' ? 'Not available' : String(value);
   }
-  protected coordinates(): string {
+  protected hasValue(value: string | number | boolean | undefined | null): boolean {
+    return value !== undefined && value !== null && value !== '';
+  }
+  protected asnValue(): string | undefined {
+    return this.intelligence()?.asnDetails?.asn || this.intelligence()?.asn;
+  }
+  protected ispValue(): string | undefined {
+    return this.intelligence()?.companyDetails?.name || this.intelligence()?.organization;
+  }
+  protected cityValue(): string | undefined {
+    return this.intelligence()?.locationDetails?.city || this.intelligence()?.city;
+  }
+  protected regionValue(): string | undefined {
+    return this.intelligence()?.locationDetails?.region || this.intelligence()?.region;
+  }
+  protected countryValue(): string | undefined {
+    return this.intelligence()?.locationDetails?.country || this.intelligence()?.country;
+  }
+  protected providerDetailsAvailable(): boolean {
+    const details = this.intelligence()?.companyDetails;
+    return Boolean(
+      details?.name ||
+      details?.type ||
+      details?.domain ||
+      details?.network ||
+      details?.netname ||
+      details?.abuserScore ||
+      this.intelligence()?.organization ||
+      this.intelligence()?.companyType,
+    );
+  }
+  protected asnDetailsAvailable(): boolean {
+    const details = this.intelligence()?.asnDetails;
+    return (
+      Boolean(
+        details && Object.values(details).some((value) => value !== undefined && value !== ''),
+      ) || Boolean(this.intelligence()?.asn || this.intelligence()?.rir)
+    );
+  }
+  protected locationDetailsAvailable(): boolean {
+    const details = this.intelligence()?.locationDetails;
+    return (
+      Boolean(
+        details && Object.values(details).some((value) => value !== undefined && value !== ''),
+      ) ||
+      Boolean(
+        this.intelligence()?.city || this.intelligence()?.region || this.intelligence()?.country,
+      )
+    );
+  }
+  protected abuseDetailsAvailable(): boolean {
+    const details = this.intelligence()?.abuseDetails;
+    return Boolean(details && Object.values(details).some((value) => Boolean(value)));
+  }
+  protected coordinates(): string | undefined {
     const location = this.intelligence()?.locationDetails;
     return location?.latitude === undefined || location.longitude === undefined
-      ? 'Not available'
+      ? undefined
       : `${location.latitude}, ${location.longitude}`;
   }
+  protected candidateLabel(type: string): string {
+    switch (type.toLowerCase()) {
+      case 'host':
+        return 'Host candidate';
+      case 'srflx':
+        return 'Server-reflexive (srflx)';
+      case 'relay':
+        return 'Relay candidate';
+      default:
+        return `${type} candidate`;
+    }
+  }
+  protected candidateAnchor(type: string): string | undefined {
+    const normalized = type.toLowerCase();
+    return normalized === 'host' || normalized === 'srflx' || normalized === 'relay'
+      ? normalized
+      : undefined;
+  }
   protected providerTitle(): string {
-    return this.intelligenceMode() === 'keyed'
-      ? 'Full IP intelligence'
-      : this.intelligenceMode()
-        ? 'Basic IP intelligence'
-        : 'IP intelligence unavailable';
+    if (!this.intelligencePreference.enabled()) return 'IP intelligence off';
+    if (this.intelligenceLoading()) return 'Loading IP intelligence';
+    if (this.intelligenceMode() === 'keyed') return 'Full IP intelligence';
+    if (this.intelligenceMode() === 'anonymous' || this.intelligenceMode() === 'anonymous-fallback')
+      return 'Basic IP intelligence';
+    return 'IP intelligence unavailable';
   }
   protected providerDetail(): string {
-    return this.intelligenceMode() === 'keyed'
-      ? 'ipapi.is authenticated'
-      : this.intelligenceMode() === 'anonymous-fallback'
-        ? 'Daily API quota reached · anonymous fallback active'
-        : this.intelligenceMode() === 'anonymous'
-          ? 'ipapi.is anonymous mode'
-          : 'Speed testing and local browser diagnostics still work';
+    if (!this.intelligencePreference.enabled()) return 'ipapi.is is not being used';
+    if (this.intelligenceLoading()) return 'Loading provider-reported network details';
+    if (this.intelligenceMode() === 'keyed') return 'ipapi.is authenticated';
+    if (this.intelligenceMode() === 'anonymous-fallback')
+      return 'API quota reached · anonymous fallback active';
+    if (this.intelligenceMode() === 'anonymous') return 'ipapi.is anonymous mode';
+    return 'Provider could not be reached or returned no usable data';
   }
   protected securityText(value: boolean | undefined): string {
     return value === undefined ? 'Not available' : value ? 'Detected' : 'Not detected';
@@ -192,6 +333,7 @@ export class DashboardComponent {
     return this.intelligence()?.security[key];
   }
   protected providerStatusClass(): string {
+    if (!this.intelligencePreference.enabled()) return 'provider-disabled';
     return this.intelligenceMode() === 'keyed'
       ? 'provider-keyed'
       : this.intelligenceMode() === 'anonymous-fallback'
@@ -202,5 +344,16 @@ export class DashboardComponent {
   }
   protected speedValue(value: number | undefined): number | undefined {
     return this.speedUnit.displayValue(value);
+  }
+  private cancelIntelligenceRequest(): void {
+    this.intelligenceRequestGeneration++;
+    this.intelligenceAbortController?.abort();
+    this.intelligenceAbortController = undefined;
+    this.requestedIntelligenceIp = undefined;
+  }
+  private clearIntelligence(mode: IpIntelligenceMode): void {
+    this.intelligence.set(undefined);
+    this.intelligenceMode.set(mode);
+    this.intelligenceLoading.set(false);
   }
 }

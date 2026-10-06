@@ -1,0 +1,255 @@
+<main class="page">
+  <a class="back-link" routerLink="/">
+    <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Dashboard
+  </a>
+  <p class="eyebrow">Browser heuristic</p>
+  <h1>Net Neutrality Check</h1>
+  <p class="intro">
+    Compare browser-visible paths to popular Internet services. This can highlight unusual
+    differences, but cannot by itself prove ISP throttling.
+  </p>
+
+  @if (!report() && !neutrality.running()) {
+    <section class="start-panel" aria-labelledby="start-title">
+      <h2 id="start-title">Experimental browser-based traffic differentiation check</h2>
+      <p>
+        The check sends sequential, unauthenticated requests only after you start it. Opaque browser
+        responses are timed, not inspected.
+      </p>
+      <button class="primary icon-button" type="button" (click)="start()">
+        <span class="material-symbols-rounded" aria-hidden="true">play_arrow</span>
+        Start Net Neutrality Check
+      </button>
+    </section>
+  }
+
+  @if (neutrality.running()) {
+    @if (progress(); as current) {
+      <section class="progress-panel" aria-labelledby="progress-title">
+        <h2 id="progress-title" role="status">
+          Round {{ current.round }} of {{ current.totalRounds }} · Testing {{ current.targetName }}…
+        </h2>
+        <progress
+          [max]="current.totalRequests"
+          [value]="current.completedRequests"
+          aria-label="Net Neutrality Check progress"
+        ></progress>
+        <p>{{ current.completedRequests }} of {{ current.totalRequests }} requests completed</p>
+        <button class="secondary icon-button" type="button" (click)="cancel()">
+          <span class="material-symbols-rounded" aria-hidden="true">close</span>Cancel check
+        </button>
+      </section>
+    }
+  }
+
+  @if (report(); as result) {
+    <section class="overall card" aria-labelledby="overall-title">
+      <p class="eyebrow">Browser heuristic result</p>
+      <h2 id="overall-title">{{ overallLabel(result.overall) }}</h2>
+      <p>{{ result.explanation }}</p>
+      <p class="caution">
+        This is observed browser-path behavior, not proof of ISP intent or a legal net-neutrality
+        violation.
+      </p>
+    </section>
+
+    <section class="details card" aria-labelledby="test-details-title">
+      <h2 id="test-details-title">Test details</h2>
+      <dl>
+        <dt>Report ID</dt>
+        <dd>{{ result.id }}</dd>
+        <dt>Methodology</dt>
+        <dd>{{ result.methodologyVersion }}</dd>
+        <dt>Targets tested</dt>
+        <dd>{{ result.targets.length }}</dd>
+        <dt>Rounds</dt>
+        <dd>{{ result.rounds.length }}</dd>
+        <dt>Total requests</dt>
+        <dd>{{ totalRequests(result) }}</dd>
+        <dt>Execution</dt>
+        <dd>Sequential</dd>
+        <dt>Order</dt>
+        <dd>Randomized each round</dd>
+        <dt>Timeout/request</dt>
+        <dd>{{ result.configuration.timeoutMs / 1000 }} seconds</dd>
+        <dt>Started</dt>
+        <dd>{{ result.startedAt | date: 'medium' }}</dd>
+        <dt>Completed</dt>
+        <dd>{{ result.completedAt | date: 'medium' }}</dd>
+        <dt>Duration</dt>
+        <dd>{{ result.durationMs / 1000 | number: '1.1-1' }} seconds</dd>
+        <dt>Minimum successful samples</dt>
+        <dd>{{ result.configuration.minimumSuccessfulSamples }}</dd>
+        <dt>Ratio threshold</dt>
+        <dd>{{ result.configuration.ratioThreshold }}×</dd>
+        <dt>Absolute threshold</dt>
+        <dd>{{ result.configuration.absoluteDifferenceThresholdMs }} ms</dd>
+      </dl>
+      <h3>Randomized order by round</h3>
+      <ol>
+        @for (round of result.rounds; track round.round) {
+          <li>Round {{ round.round }}: {{ round.order.join(' → ') }}</li>
+        }
+      </ol>
+    </section>
+
+    <section class="results card" aria-labelledby="results-title">
+      <h2 id="results-title">Results by service</h2>
+      @for (target of result.targets; track target.id) {
+        <article class="target-result">
+          <div class="target-heading">
+            <h3>{{ target.name }}</h3>
+            <strong>{{ classificationLabel(target.classification) }}</strong>
+          </div>
+          <dl>
+            <dt>Attempts</dt>
+            <dd>{{ target.attempts.length }}</dd>
+            <dt>Successful</dt>
+            <dd>{{ target.successfulAttempts }}</dd>
+            <dt>Failed</dt>
+            <dd>{{ target.failedAttempts }}</dd>
+            <dt>Timed out</dt>
+            <dd>{{ target.timeoutAttempts }}</dd>
+            <dt>Success rate</dt>
+            <dd>{{ target.successRate | number: '1.0-1' }}%</dd>
+            <dt>Minimum</dt>
+            <dd>
+              {{
+                target.minimumMs === undefined
+                  ? 'Not measured'
+                  : (target.minimumMs | number: '1.0-1') + ' ms'
+              }}
+            </dd>
+            <dt>Median</dt>
+            <dd>
+              {{
+                target.medianMs === undefined
+                  ? 'Not measured'
+                  : (target.medianMs | number: '1.0-1') + ' ms'
+              }}
+            </dd>
+            <dt>Maximum</dt>
+            <dd>
+              {{
+                target.maximumMs === undefined
+                  ? 'Not measured'
+                  : (target.maximumMs | number: '1.0-1') + ' ms'
+              }}
+            </dd>
+            <dt>Variation (MAD)</dt>
+            <dd>
+              {{
+                target.variationMs === undefined
+                  ? 'Not measured'
+                  : (target.variationMs | number: '1.0-1') + ' ms'
+              }}
+            </dd>
+            <dt>Relative ratio</dt>
+            <dd>
+              {{
+                target.relativeRatio === undefined
+                  ? 'Not available'
+                  : (target.relativeRatio | number: '1.1-1') + '×'
+              }}
+            </dd>
+          </dl>
+        </article>
+      }
+    </section>
+
+    <section class="charts card" aria-labelledby="charts-title">
+      <h2 id="charts-title">Measured timing charts</h2>
+      <div class="chart-grid">
+        <figure>
+          <figcaption>Median response time by service</figcaption>
+          <div class="chart-frame">
+            <canvas #medianCanvas aria-label="Median response time by service bar chart"></canvas>
+          </div>
+        </figure>
+        <figure>
+          <figcaption>Successful attempt timing by round</figcaption>
+          <div class="chart-frame">
+            <canvas
+              #attemptsCanvas
+              aria-label="Successful attempt timing by round line chart"
+            ></canvas>
+          </div>
+        </figure>
+      </div>
+      <p class="muted">
+        Failed and timed-out attempts are omitted from timing charts, not replaced with invented
+        values.
+      </p>
+    </section>
+
+    <details class="attempt-details card">
+      <summary>Detailed attempts</summary>
+      @for (round of result.rounds; track round.round) {
+        <section class="round-details">
+          <h3>Round {{ round.round }}</h3>
+          <ol>
+            @for (attempt of round.attempts; track attempt.targetId) {
+              <li>
+                <strong>{{ targetName(result, attempt.targetId) }}</strong>
+                <span>{{ attempt.outcome }}</span>
+                <time [attr.datetime]="attempt.startedAt">{{
+                  attempt.startedAt | date: 'mediumTime'
+                }}</time>
+                <span>{{
+                  attempt.durationMs === undefined
+                    ? 'No timing'
+                    : (attempt.durationMs | number: '1.0-1') + ' ms'
+                }}</span>
+              </li>
+            }
+          </ol>
+        </section>
+      }
+    </details>
+
+    <section class="interpretation card" aria-labelledby="interpretation-title">
+      <h2 id="interpretation-title">Interpretation and limitations</h2>
+      <p>
+        Repeated timing differences are a signal for further investigation, not a diagnosis. A
+        reachability problem does not automatically mean a service was blocked by an ISP.
+      </p>
+      <p>
+        CDN placement, service load, peering, routing, DNS, VPNs, proxies, Zscaler or other
+        corporate gateways, firewalls, browser extensions, temporary congestion, outages, rate
+        limiting, and actual traffic management can all affect results.
+      </p>
+      <p>
+        Browser-only PingMetric cannot perform low-level packet replay like a native controlled Wehe
+        client. This heuristic cannot establish provider intent or a legal violation. Repeating
+        tests at different times can provide more context. No result guarantees that all Internet
+        traffic is treated equally.
+      </p>
+    </section>
+
+    <section class="export card" aria-labelledby="export-title">
+      <h2 id="export-title">PDF export options</h2>
+      <label>
+        <input
+          type="checkbox"
+          [checked]="includeNetworkIdentity()"
+          (change)="onNetworkIdentityChange($event)"
+        />
+        Include network identity details
+      </label>
+      <label>
+        <input type="checkbox" [checked]="includePublicIp()" (change)="onPublicIpChange($event)" />
+        Include public IP addresses
+      </label>
+      <p class="muted">
+        Both options default off. WebRTC addresses, coordinates, postal codes, contact details, API
+        keys, and user-agent strings are never exported.
+      </p>
+      <button class="primary icon-button" type="button" (click)="downloadPdf(result)">
+        <span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>Download PDF
+      </button>
+      <button class="secondary icon-button" type="button" (click)="start()">
+        <span class="material-symbols-rounded" aria-hidden="true">refresh</span>Run Again
+      </button>
+    </section>
+  }
+</main>

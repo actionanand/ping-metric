@@ -266,6 +266,33 @@ main {
   margin: 0.3rem 0;
   color: var(--muted);
 }
+.network-facts {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0;
+}
+.network-facts > div {
+  display: grid;
+  grid-template-columns: minmax(5rem, 0.6fr) minmax(0, 1.4fr);
+  gap: 0.6rem;
+}
+.network-facts dt {
+  color: var(--muted);
+}
+.network-facts dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.network-facts a,
+.candidate-row a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  color: var(--accent-strong);
+  vertical-align: middle;
+}
 .provider-status {
   display: flex;
   gap: 0.65rem;
@@ -276,6 +303,10 @@ main {
 }
 .provider-status.provider-keyed {
   background: var(--metric-success-soft);
+}
+.provider-status.provider-disabled,
+.provider-status.provider-anonymous {
+  background: var(--metric-neutral-soft);
 }
 .provider-status.provider-fallback {
   background: var(--metric-warning-soft);
@@ -337,6 +368,48 @@ main {
 }
 .security-list {
   display: grid;
+}
+.intelligence-toggle {
+  display: grid;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.intelligence-toggle p {
+  margin: 0.3rem 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+.switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 5.25rem;
+  min-height: 2.75rem;
+  background: var(--notice);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.switch .material-symbols-rounded {
+  color: var(--accent-strong);
+  font-size: 1.25rem;
+}
+.intelligence-state {
+  margin-bottom: 0;
+}
+.candidate-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  overflow-wrap: anywhere;
+}
+.candidate-row strong {
+  grid-column: 1 / -1;
 }
 .security-row {
   display: flex;
@@ -464,6 +537,9 @@ details dl {
     grid-template-columns: 1fr auto;
     align-items: center;
   }
+  .intelligence-toggle {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
   .actions {
     display: flex;
   }
@@ -474,7 +550,7 @@ details dl {
     max-width: 42rem;
   }
 }
-@media (min-width: 64rem) {
+@media (min-width: 72rem) {
   .desktop-nav {
     display: flex;
     align-items: center;

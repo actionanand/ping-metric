@@ -10,6 +10,7 @@
     "watch": "ng build --watch --configuration development",
     "copy-error-page": "cp dist/ping-metric/browser/index.html dist/ping-metric/browser/404.html",
     "test": "ng test",
+    "test:ci": "npm test -- --watch=false",
     "precommit:dummy": "echo 'This is a dummy print message!'",
     "precommit": "run-s format:fix lint",
     "format:fix": "pretty-quick --staged",

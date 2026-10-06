@@ -1,19 +1,30 @@
+import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { environment } from '../../../environments/environment';
 import { IpIntelligenceService, normalize } from './ip-intelligence.service';
+import {
+  IpIntelligencePreferenceService,
+  ipIntelligenceStorageKey,
+} from './ip-intelligence-preference.service';
 
-vi.mock('../../../environments/environment', () => ({
-  environment: {
-    ip: { intelligenceEndpoint: 'https://api.ipapi.is', intelligenceApiKey: '' },
-  },
-}));
+const originalEndpoint = environment.ip.intelligenceEndpoint;
+const originalApiKey = environment.ip.intelligenceApiKey;
 
 describe('IP intelligence lookup', () => {
   const ip = '203.0.113.1';
   const fetchMock = vi.fn<typeof fetch>();
-  const service = new IpIntelligenceService();
+  let service: IpIntelligenceService;
+  let preference: IpIntelligencePreferenceService;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    localStorage.removeItem(ipIntelligenceStorageKey);
+    await TestBed.configureTestingModule({
+      providers: [IpIntelligenceService, IpIntelligencePreferenceService],
+    }).compileComponents();
+    service = TestBed.inject(IpIntelligenceService);
+    preference = TestBed.inject(IpIntelligencePreferenceService);
+    preference.setEnabled(true);
+    environment.ip.intelligenceEndpoint = 'https://api.ipapi.is';
     environment.ip.intelligenceApiKey = '';
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
@@ -21,6 +32,10 @@ describe('IP intelligence lookup', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    TestBed.resetTestingModule();
+    localStorage.removeItem(ipIntelligenceStorageKey);
+    environment.ip.intelligenceEndpoint = originalEndpoint;
+    environment.ip.intelligenceApiKey = originalApiKey;
   });
 
   function response(status: number, data: unknown): Response {
@@ -30,6 +45,18 @@ describe('IP intelligence lookup', () => {
   function requestedUrl(index: number): URL {
     return new URL(String(fetchMock.mock.calls[index][0]));
   }
+
+  it('does not construct or send a provider request when disabled', async () => {
+    environment.ip.intelligenceApiKey = 'test-public-key';
+    preference.setEnabled(false);
+
+    await expect(service.lookup(ip)).resolves.toEqual({
+      state: 'idle',
+      providerMode: 'disabled',
+      message: 'IP intelligence is off.',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
   it('makes one anonymous request when no key is configured', async () => {
     fetchMock.mockResolvedValueOnce(response(200, { ip }));
@@ -196,6 +223,8 @@ describe('IP intelligence lookup', () => {
 });
 
 describe('ipapi.is normalization', () => {
+  const ip = '203.0.113.1';
+
   it('maps documented nested response fields without leaking raw provider data', () => {
     expect(
       normalize({

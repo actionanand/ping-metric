@@ -7,6 +7,8 @@
       ><span class="material-symbols-rounded" aria-hidden="true">history</span>History</a
     ><a routerLink="/network-guide"
       ><span class="material-symbols-rounded" aria-hidden="true">school</span>Network Guide</a
+    ><a routerLink="/net-neutrality"
+      ><span class="material-symbols-rounded" aria-hidden="true">balance</span>Net Neutrality</a
     ><a routerLink="/settings"
       ><span class="material-symbols-rounded" aria-hidden="true">settings</span>Settings</a
     ><a routerLink="/about"
@@ -58,6 +60,8 @@
       <a routerLink="/" (click)="closeNavigation()">Dashboard</a
       ><a routerLink="/history" (click)="closeNavigation()">History</a
       ><a routerLink="/network-guide" (click)="closeNavigation()">Network Guide</a
+      ><a routerLink="/net-neutrality" (click)="closeNavigation()">
+        <span class="material-symbols-rounded" aria-hidden="true">balance</span>Net Neutrality </a
       ><a routerLink="/settings" (click)="closeNavigation()">Settings</a
       ><a routerLink="/about" (click)="closeNavigation()">About</a
       ><button
@@ -222,13 +226,59 @@
   <section class="network-summary card" aria-labelledby="network-title">
     <div>
       <p class="card-kicker">Network</p>
-      <h2 id="network-title"><app-sensitive-value [value]="intelligence()?.organization" /></h2>
+      <h2 id="network-title">Network summary</h2>
+      <dl class="network-facts">
+        @if (asnValue(); as value) {
+          <div>
+            <dt>
+              ASN
+              <a routerLink="/network-guide" fragment="asn" aria-label="Learn about ASN"
+                ><span class="material-symbols-rounded" aria-hidden="true">bookmark</span></a
+              >
+            </dt>
+            <dd><app-sensitive-value [value]="value" /></dd>
+          </div>
+        }
+        @if (ispValue(); as value) {
+          <div>
+            <dt>
+              ISP
+              <a routerLink="/network-guide" fragment="isp" aria-label="Learn about ISP"
+                ><span class="material-symbols-rounded" aria-hidden="true">bookmark</span></a
+              >
+            </dt>
+            <dd><app-sensitive-value [value]="value" /></dd>
+          </div>
+        }
+        @if (cityValue(); as value) {
+          <div>
+            <dt>
+              City
+              <a
+                routerLink="/network-guide"
+                fragment="ip-location"
+                aria-label="Learn about IP-based location"
+                ><span class="material-symbols-rounded" aria-hidden="true">bookmark</span></a
+              >
+            </dt>
+            <dd><app-sensitive-value [value]="value" /></dd>
+          </div>
+        }
+        @if (regionValue(); as value) {
+          <div>
+            <dt>Region</dt>
+            <dd><app-sensitive-value [value]="value" /></dd>
+          </div>
+        }
+        @if (countryValue(); as value) {
+          <div>
+            <dt>Country</dt>
+            <dd>{{ value }}</dd>
+          </div>
+        }
+      </dl>
       <p>
-        <app-sensitive-value [value]="intelligence()?.asn" /> ·
-        <app-sensitive-value [value]="intelligence()?.city || intelligence()?.country" />
-      </p>
-      <p>
-        {{ ips()?.protocol || 'Protocol unknown' }} ·
+        {{ ips()?.protocol || 'Checking IP protocols…' }} ·
         {{ network.info().effectiveType || 'Browser estimate unavailable' }}
       </p>
     </div>
@@ -264,144 +314,205 @@
         <p class="card-kicker">Provider-reported</p>
         <h2 id="intelligence-title">Network intelligence</h2>
       </div>
-      <span class="badge">{{
-        intelligenceMode() === 'keyed' ? 'Full' : intelligenceMode() ? 'Basic' : 'Unavailable'
-      }}</span>
+      <span class="badge">{{ providerTitle() }}</span>
     </div>
-    @if (intelligence()) {
-      <div class="security-list">
-        @for (row of securityRows(); track row[1]) {
-          <div class="security-row">
-            <span>{{ row[0] }}</span
-            ><strong [class]="securityClass(row[2], securityValue(row[1]))"
-              ><span class="material-symbols-rounded" aria-hidden="true">{{
-                securityValue(row[1]) === undefined
-                  ? 'remove'
-                  : securityValue(row[1])
-                    ? 'visibility'
-                    : 'check_circle'
-              }}</span
-              >{{ securityText(securityValue(row[1])) }}</strong
-            >
-          </div>
-        }
+    <div class="intelligence-toggle">
+      <div>
+        <strong>IP intelligence</strong>
+        <p>
+          Use ipapi.is to retrieve ISP, ASN, approximate IP-based location and network security
+          classifications. Your public IP is sent to ipapi.is only when this option is enabled.
+        </p>
       </div>
+      <button
+        class="switch"
+        type="button"
+        role="switch"
+        aria-label="IP intelligence"
+        [attr.aria-checked]="intelligencePreference.enabled()"
+        (click)="setIntelligenceEnabled(!intelligencePreference.enabled())"
+      >
+        <span class="material-symbols-rounded" aria-hidden="true">{{
+          intelligencePreference.enabled() ? 'toggle_on' : 'toggle_off'
+        }}</span>
+        {{ intelligencePreference.enabled() ? 'On' : 'Off' }}
+      </button>
+    </div>
+    @if (!intelligencePreference.enabled()) {
+      <p class="intelligence-state"><strong>IP intelligence off</strong></p>
+      <p class="muted">ipapi.is is not being used</p>
+    } @else if (intelligenceLoading()) {
+      <p class="intelligence-state" role="status">Loading IP intelligence…</p>
+    } @else if (intelligence()) {
+      @if (securityRows().length) {
+        <div class="security-list">
+          @for (row of securityRows(); track row[1]) {
+            <div class="security-row">
+              <span>{{ row[0] }}</span
+              ><strong [class]="securityClass(row[2], securityValue(row[1]))"
+                ><span class="material-symbols-rounded" aria-hidden="true">{{
+                  securityValue(row[1]) ? 'visibility' : 'check_circle'
+                }}</span
+                >{{ securityText(securityValue(row[1])) }}</strong
+              >
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="muted">
+          Advanced security classifications are unavailable in this IP intelligence response.
+        </p>
+      }
       <details>
         <summary>Advanced network details</summary>
-        <section class="detail-group">
-          <h3>Provider</h3>
-          <dl>
-            <dt>Provider</dt>
-            <dd>
-              <app-sensitive-value
-                [value]="intelligence()?.companyDetails?.name || intelligence()?.organization"
-              />
-            </dd>
-            <dt>Network type</dt>
-            <dd>
-              <span class="detail-badge">{{
-                present(intelligence()?.companyDetails?.type || intelligence()?.companyType)
-              }}</span>
-            </dd>
-            <dt>Domain</dt>
-            <dd><app-sensitive-value [value]="intelligence()?.companyDetails?.domain" /></dd>
-            <dt>Network</dt>
-            <dd class="mono">
-              <app-sensitive-value
-                [value]="intelligence()?.companyDetails?.network || intelligence()?.network"
-              />
-            </dd>
-            <dt>Netname</dt>
-            <dd class="mono">
-              <app-sensitive-value [value]="intelligence()?.companyDetails?.netname" />
-            </dd>
-            <dt>Provider reputation</dt>
-            <dd>{{ present(intelligence()?.companyDetails?.abuserScore) }}</dd>
-          </dl>
-        </section>
-        <section class="detail-group">
-          <h3>ASN</h3>
-          <dl>
-            <dt>ASN</dt>
-            <dd class="mono">
-              <app-sensitive-value
-                [value]="intelligence()?.asnDetails?.asn || intelligence()?.asn"
-              />
-            </dd>
-            <dt>Route</dt>
-            <dd class="mono">
-              <app-sensitive-value [value]="intelligence()?.asnDetails?.route" />
-            </dd>
-            <dt>Description</dt>
-            <dd>
-              <app-sensitive-value [value]="intelligence()?.asnDetails?.description" />
-            </dd>
-            <dt>Organization</dt>
-            <dd><app-sensitive-value [value]="intelligence()?.asnDetails?.organization" /></dd>
-            <dt>Country</dt>
-            <dd>{{ present(intelligence()?.asnDetails?.country) }}</dd>
-            <dt>Status</dt>
-            <dd>
-              {{
-                intelligence()?.asnDetails?.active === undefined
-                  ? 'Not available'
-                  : intelligence()?.asnDetails?.active
-                    ? 'Active'
-                    : 'Inactive'
-              }}
-            </dd>
-            <dt>Domain</dt>
-            <dd><app-sensitive-value [value]="intelligence()?.asnDetails?.domain" /></dd>
-            <dt>RIR</dt>
-            <dd>{{ present(intelligence()?.asnDetails?.rir || intelligence()?.rir) }}</dd>
-            <dt>Updated</dt>
-            <dd>{{ present(intelligence()?.asnDetails?.updated) }}</dd>
-            <dt>ASN reputation</dt>
-            <dd>{{ present(intelligence()?.asnDetails?.abuserScore) }}</dd>
-          </dl>
-        </section>
-        <section class="detail-group">
-          <h3>Approximate IP-based location</h3>
-          <dl>
-            <dt>City</dt>
-            <dd><app-sensitive-value [value]="intelligence()?.locationDetails?.city" /></dd>
-            <dt>Region</dt>
-            <dd><app-sensitive-value [value]="intelligence()?.locationDetails?.region" /></dd>
-            <dt>Country</dt>
-            <dd>{{ present(intelligence()?.locationDetails?.country) }}</dd>
-            <dt>Postal code</dt>
-            <dd><app-sensitive-value [value]="intelligence()?.locationDetails?.postalCode" /></dd>
-            <dt>Timezone</dt>
-            <dd>{{ present(intelligence()?.locationDetails?.timezone) }}</dd>
-            <dt>UTC offset</dt>
-            <dd>{{ present(intelligence()?.locationDetails?.utcOffset) }}</dd>
-            <dt>Accuracy</dt>
-            <dd>
-              <span class="detail-badge">{{
-                present(intelligence()?.locationDetails?.accuracy)
-              }}</span>
-            </dd>
-            <dt>Coordinates</dt>
-            <dd><app-sensitive-value [value]="coordinates()" /></dd>
-            <dt>Local time</dt>
-            <dd>{{ present(intelligence()?.locationDetails?.localTime) }}</dd>
-          </dl>
-        </section>
-        @if (intelligence()?.abuseDetails) {
+        @if (providerDetailsAvailable()) {
+          <section class="detail-group">
+            <h3>Provider</h3>
+            <dl>
+              @if (ispValue(); as value) {
+                <dt>Provider</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.companyDetails?.type || intelligence()?.companyType; as value) {
+                <dt>Network type</dt>
+                <dd>
+                  <span class="detail-badge">{{ value }}</span>
+                </dd>
+              }
+              @if (intelligence()?.companyDetails?.domain; as value) {
+                <dt>Domain</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.companyDetails?.network || intelligence()?.network; as value) {
+                <dt>Network</dt>
+                <dd class="mono"><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.companyDetails?.netname; as value) {
+                <dt>Netname</dt>
+                <dd class="mono"><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.companyDetails?.abuserScore; as value) {
+                <dt>Provider reputation</dt>
+                <dd>{{ value }}</dd>
+              }
+            </dl>
+          </section>
+        }
+        @if (asnDetailsAvailable()) {
+          <section class="detail-group">
+            <h3>ASN</h3>
+            <dl>
+              @if (asnValue(); as value) {
+                <dt>ASN</dt>
+                <dd class="mono"><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.asnDetails?.route; as value) {
+                <dt>Route</dt>
+                <dd class="mono"><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.asnDetails?.description; as value) {
+                <dt>Description</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.asnDetails?.organization; as value) {
+                <dt>Organization</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.asnDetails?.country; as value) {
+                <dt>Country</dt>
+                <dd>{{ value }}</dd>
+              }
+              @if (hasValue(intelligence()?.asnDetails?.active)) {
+                <dt>Status</dt>
+                <dd>{{ intelligence()?.asnDetails?.active ? 'Active' : 'Inactive' }}</dd>
+              }
+              @if (intelligence()?.asnDetails?.domain; as value) {
+                <dt>Domain</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.asnDetails?.rir || intelligence()?.rir; as value) {
+                <dt>RIR</dt>
+                <dd>{{ value }}</dd>
+              }
+              @if (intelligence()?.asnDetails?.updated; as value) {
+                <dt>Updated</dt>
+                <dd>{{ value }}</dd>
+              }
+              @if (intelligence()?.asnDetails?.abuserScore; as value) {
+                <dt>ASN reputation</dt>
+                <dd>{{ value }}</dd>
+              }
+            </dl>
+          </section>
+        }
+        @if (locationDetailsAvailable()) {
+          <section class="detail-group">
+            <h3>Approximate IP-based location</h3>
+            <dl>
+              @if (cityValue(); as value) {
+                <dt>City</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (regionValue(); as value) {
+                <dt>Region</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (countryValue(); as value) {
+                <dt>Country</dt>
+                <dd>{{ value }}</dd>
+              }
+              @if (intelligence()?.locationDetails?.postalCode; as value) {
+                <dt>Postal code</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.locationDetails?.timezone; as value) {
+                <dt>Timezone</dt>
+                <dd>{{ value }}</dd>
+              }
+              @if (intelligence()?.locationDetails?.utcOffset; as value) {
+                <dt>UTC offset</dt>
+                <dd>{{ value }}</dd>
+              }
+              @if (intelligence()?.locationDetails?.accuracy; as value) {
+                <dt>Accuracy</dt>
+                <dd>
+                  <span class="detail-badge">{{ value }}</span>
+                </dd>
+              }
+              @if (coordinates(); as value) {
+                <dt>Coordinates</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.locationDetails?.localTime; as value) {
+                <dt>Local time</dt>
+                <dd>{{ value }}</dd>
+              }
+            </dl>
+          </section>
+        }
+        @if (abuseDetailsAvailable()) {
           <section class="detail-group">
             <h3>Network contact</h3>
             <p class="contact-note">
               This is the network abuse/contact record, not evidence about the current user.
             </p>
             <dl>
-              <dt>Organization</dt>
-              <dd><app-sensitive-value [value]="intelligence()?.abuseDetails?.name" /></dd>
-              <dt>Email</dt>
-              <dd><app-sensitive-value [value]="intelligence()?.abuseDetails?.email" /></dd>
-              <dt>Phone</dt>
-              <dd><app-sensitive-value [value]="intelligence()?.abuseDetails?.phone" /></dd>
-              <dt>Address</dt>
-              <dd><app-sensitive-value [value]="intelligence()?.abuseDetails?.address" /></dd>
+              @if (intelligence()?.abuseDetails?.name; as value) {
+                <dt>Organization</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.abuseDetails?.email; as value) {
+                <dt>Email</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.abuseDetails?.phone; as value) {
+                <dt>Phone</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
+              @if (intelligence()?.abuseDetails?.address; as value) {
+                <dt>Address</dt>
+                <dd><app-sensitive-value [value]="value" /></dd>
+              }
             </dl>
           </section>
         }
@@ -425,19 +536,26 @@
         }
       </details>
     } @else {
-      <p>
-        {{
-          intelligenceMessage() ||
-            'IP intelligence is not available. Speed testing and browser diagnostics remain available.'
-        }}
-      </p>
+      <p class="intelligence-state"><strong>IP intelligence unavailable</strong></p>
+      <p class="muted">Provider could not be reached or returned no usable data</p>
     }
   </section>
   <section class="card addresses" aria-labelledby="addresses-title">
     <h2 id="addresses-title">IP addresses</h2>
     <div class="address-row">
       <div>
-        <span>IPv4</span><code><app-sensitive-value [value]="ips()?.ipv4?.value?.address" /></code>
+        <span>
+          IPv4
+          <a
+            routerLink="/network-guide"
+            fragment="ipv4"
+            aria-label="Learn about IPv4"
+            title="Learn about IPv4"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true">bookmark</span>
+          </a>
+        </span>
+        <code><app-sensitive-value [value]="ips()?.ipv4?.value?.address" /></code>
       </div>
       <button
         class="copy"
@@ -452,7 +570,18 @@
     </div>
     <div class="address-row">
       <div>
-        <span>IPv6</span><code><app-sensitive-value [value]="ips()?.ipv6?.value?.address" /></code>
+        <span>
+          IPv6
+          <a
+            routerLink="/network-guide"
+            fragment="ipv6"
+            aria-label="Learn about IPv6"
+            title="Learn about IPv6"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true">bookmark</span>
+          </a>
+        </span>
+        <code><app-sensitive-value [value]="ips()?.ipv6?.value?.address" /></code>
       </div>
       <button
         class="copy"
@@ -487,7 +616,19 @@
     @if (rtc()?.candidates?.length) {
       <ul>
         @for (candidate of rtc()?.candidates ?? []; track candidate.address + candidate.type) {
-          <li>{{ candidate.type }} · <app-sensitive-value [value]="candidate.address" /></li>
+          <li class="candidate-row">
+            <strong>{{ candidateLabel(candidate.type) }}</strong>
+            <app-sensitive-value [value]="candidate.address" />
+            @if (candidateAnchor(candidate.type); as anchor) {
+              <a
+                routerLink="/network-guide"
+                [fragment]="anchor"
+                [attr.aria-label]="'Learn about ' + candidateLabel(candidate.type)"
+                title="Learn about this candidate type"
+                ><span class="material-symbols-rounded" aria-hidden="true">bookmark</span></a
+              >
+            }
+          </li>
         }
       </ul>
     }

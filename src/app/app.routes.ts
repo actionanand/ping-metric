@@ -37,5 +37,13 @@ export const routes: Routes = [
         (m) => m.NetworkGuideComponent,
       ),
   },
+  {
+    path: 'net-neutrality',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/net-neutrality/net-neutrality.component').then(
+        (m) => m.NetNeutralityComponent,
+      ),
+  },
   { path: '**', redirectTo: '' },
 ];

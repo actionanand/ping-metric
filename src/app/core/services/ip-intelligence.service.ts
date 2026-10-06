@@ -1,22 +1,28 @@
-import { Service } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import type { IpIntelligence, IpIntelligenceResult } from '../models/app.models';
+import { IpIntelligencePreferenceService } from './ip-intelligence-preference.service';
 
 @Service()
 export class IpIntelligenceService {
-  async lookup(ip: string): Promise<IpIntelligenceResult> {
+  private readonly preference = inject(IpIntelligencePreferenceService);
+
+  async lookup(ip: string, signal?: AbortSignal): Promise<IpIntelligenceResult> {
+    if (!this.preference.enabled()) {
+      return { state: 'idle', providerMode: 'disabled', message: 'IP intelligence is off.' };
+    }
     const url = new URL(environment.ip.intelligenceEndpoint);
     url.searchParams.set('q', ip);
     if (environment.ip.intelligenceApiKey)
       url.searchParams.set('key', environment.ip.intelligenceApiKey);
     const keyed = Boolean(environment.ip.intelligenceApiKey);
     try {
-      let response = await fetch(url, { cache: 'no-store' });
+      let response = await fetch(url, { cache: 'no-store', signal });
       let providerMode: IpIntelligenceResult['providerMode'] = keyed ? 'keyed' : 'anonymous';
-      if (response.status === 429 && keyed) {
+      if (response.status === 429 && keyed && !signal?.aborted) {
         const anonymousUrl = new URL(url);
         anonymousUrl.searchParams.delete('key');
-        response = await fetch(anonymousUrl, { cache: 'no-store' });
+        response = await fetch(anonymousUrl, { cache: 'no-store', signal });
         providerMode = 'anonymous-fallback';
       }
       const data: unknown = await response.json();

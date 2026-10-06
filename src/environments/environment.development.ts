@@ -20,4 +20,17 @@ export const environment: AppEnvironment = {
     timeoutMs: 5000,
   },
   webrtc: { stunUrls: ['stun:stun.l.google.com:19302'] },
+  neutrality: {
+    attempts: 5,
+    timeoutMs: 5000,
+    minimumSuccessfulSamples: 3,
+    ratioThreshold: 2.5,
+    absoluteDifferenceThresholdMs: 150,
+    targets: [
+      { id: 'youtube', name: 'YouTube', url: 'https://www.youtube.com/generate_204' },
+      { id: 'facebook', name: 'Facebook', url: 'https://www.facebook.com/favicon.ico' },
+      { id: 'google', name: 'Google', url: 'https://www.google.com/generate_204' },
+      { id: 'wikipedia', name: 'Wikipedia', url: 'https://www.wikipedia.org/favicon.ico' },
+    ],
+  },
 };

@@ -44,7 +44,7 @@ export class WebRtcLeakService {
     const outcome = values.some((candidate) => candidate.isMdns)
       ? 'Local address protected/obfuscated by browser.'
       : extra.length
-        ? 'Possible WebRTC IP exposure: an additional public address was observed.'
+        ? 'An additional public address was observed through WebRTC. This does not by itself prove a VPN or privacy leak.'
         : publicAddresses.length
           ? 'No additional public address observed.'
           : 'Test inconclusive.';

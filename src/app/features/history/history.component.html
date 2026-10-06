@@ -39,11 +39,11 @@
             ↑ {{ speedValue(entry.upload.mbps) | number: '1.1-1' }} {{ speedUnit.unitLabel() }} ·
             {{ entry.latency?.medianMs | number: '1.0-0' }} ms
           </p>
-          <p>
-            <app-sensitive-value
-              [value]="entry.intelligence?.organization || entry.ip?.default?.value?.address"
-            />
-          </p>
+          @if (intelligencePreference.enabled() && entry.intelligence?.organization) {
+            <p><app-sensitive-value [value]="entry.intelligence?.organization" /></p>
+          } @else if (entry.ip?.default?.value?.address) {
+            <p><app-sensitive-value [value]="entry.ip?.default?.value?.address" /></p>
+          }
           <button class="quiet" (click)="history.remove(entry.id)">Delete</button>
         </article>
       }

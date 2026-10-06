@@ -30,6 +30,7 @@ export interface AppEnvironment {
   };
   latency: { probeUrl: string; attempts: number; timeoutMs: number };
   webrtc: { stunUrls: string[] };
+  neutrality: NetNeutralityConfiguration;
 }
 
 export interface ServiceResult<T> {
@@ -37,9 +38,73 @@ export interface ServiceResult<T> {
   value?: T;
   message?: string;
 }
-export type IpIntelligenceMode = 'keyed' | 'anonymous' | 'anonymous-fallback';
+export type IpIntelligenceMode = 'disabled' | 'keyed' | 'anonymous' | 'anonymous-fallback';
 export interface IpIntelligenceResult extends ServiceResult<IpIntelligence> {
   providerMode?: IpIntelligenceMode;
+}
+export type NetNeutralityOverall =
+  'no-obvious-differential-behavior' | 'potential-differential-behavior' | 'inconclusive';
+export type NetNeutralityTargetClassification =
+  'normal' | 'slower-path-observed' | 'reachability-problem' | 'inconclusive';
+export type NetNeutralityAttemptOutcome = 'success' | 'failed' | 'timed-out';
+export interface NetNeutralityTargetConfig {
+  id: string;
+  name: string;
+  url: string;
+}
+export interface NetNeutralityConfiguration {
+  attempts: number;
+  timeoutMs: number;
+  minimumSuccessfulSamples: number;
+  ratioThreshold: number;
+  absoluteDifferenceThresholdMs: number;
+  targets: readonly NetNeutralityTargetConfig[];
+}
+export interface NetNeutralityAttempt {
+  targetId: string;
+  round: number;
+  startedAt: string;
+  durationMs?: number;
+  outcome: NetNeutralityAttemptOutcome;
+}
+export interface NetNeutralityRound {
+  round: number;
+  order: readonly string[];
+  attempts: readonly NetNeutralityAttempt[];
+}
+export interface NetNeutralityTargetResult {
+  id: string;
+  name: string;
+  attempts: readonly NetNeutralityAttempt[];
+  successfulAttempts: number;
+  failedAttempts: number;
+  timeoutAttempts: number;
+  successRate: number;
+  minimumMs?: number;
+  medianMs?: number;
+  maximumMs?: number;
+  variationMs?: number;
+  relativeRatio?: number;
+  classification: NetNeutralityTargetClassification;
+}
+export interface NetNeutralityReport {
+  id: string;
+  methodologyVersion: string;
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+  configuration: Readonly<Omit<NetNeutralityConfiguration, 'targets'>>;
+  rounds: readonly NetNeutralityRound[];
+  targets: readonly NetNeutralityTargetResult[];
+  overall: NetNeutralityOverall;
+  explanation: string;
+}
+export interface NetNeutralityProgress {
+  round: number;
+  totalRounds: number;
+  targetName: string;
+  completedRequests: number;
+  totalRequests: number;
 }
 export interface IpAddress {
   address: string;
