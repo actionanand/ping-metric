@@ -1,0 +1,30 @@
+.page {
+  max-width: 52rem;
+  margin: auto;
+  padding: 1.5rem 1rem 3rem;
+  line-height: 1.65;
+}
+.page section {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface);
+}
+h1 {
+  line-height: 1.1;
+}
+h2 {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  font-size: 1.2rem;
+}
+code {
+  overflow-wrap: anywhere;
+}
+.eyebrow {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}

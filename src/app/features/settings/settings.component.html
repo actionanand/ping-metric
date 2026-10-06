@@ -19,6 +19,31 @@
     </fieldset>
   </section>
   <section>
+    <h2>Measurement display</h2>
+    <p>Internet providers normally advertise Mbps. File download tools commonly show MB/s.</p>
+    <fieldset>
+      <legend>Speed unit</legend>
+      <label
+        ><input
+          type="radio"
+          name="speed-unit"
+          [checked]="speedUnit.preference() === 'megabits'"
+          (change)="speedUnit.preference.set('megabits')"
+        />
+        Mbps — Megabits per second</label
+      >
+      <label
+        ><input
+          type="radio"
+          name="speed-unit"
+          [checked]="speedUnit.preference() === 'megabytes'"
+          (change)="speedUnit.preference.set('megabytes')"
+        />
+        MB/s — Megabytes per second</label
+      >
+    </fieldset>
+  </section>
+  <section>
     <h2>History</h2>
     <p>Results are stored locally in this browser only.</p>
     <button class="danger" (click)="clearHistory()">Clear history</button>

@@ -1,0 +1,117 @@
+<main class="page">
+  <a routerLink="/">← Dashboard</a>
+  <p class="eyebrow">Network Guide</p>
+  <h1>Understand your connection</h1>
+  <p>Plain-language help for the measurements and network details shown by PingMetric.</p>
+  <section id="speed">
+    <h2><span class="material-symbols-rounded" aria-hidden="true">speed</span> Mbps vs MB/s</h2>
+    <p>
+      <b>b</b> means bit; <b>B</b> means byte. Eight bits equal one byte. ISPs normally advertise
+      Mbps, while download tools often use MB/s. They describe the same throughput in different
+      units.
+    </p>
+    <p><code>MB/s = Mbps / 8</code> · <code>Mbps = MB/s × 8</code></p>
+    <p>
+      8 Mbps ≈ 1 MB/s; 40 ≈ 5; 80 ≈ 10; 100 ≈ 12.5; 1,000 ≈ 125. Real downloads can be lower because
+      of Wi-Fi, overhead, congestion, server limits, devices, and other traffic.
+    </p>
+  </section>
+  <section>
+    <h2>
+      <span class="material-symbols-rounded" aria-hidden="true">download</span> Download and upload
+    </h2>
+    <p>
+      Download is data arriving at your device: websites, streaming and app or cloud downloads.
+      Upload is data leaving it: video calls, backups, file uploads and live streaming.
+    </p>
+  </section>
+  <section id="latency">
+    <h2>Latency, ping, jitter and RTT</h2>
+    <p>
+      Latency is response time in milliseconds; lower is generally better for browsing, gaming,
+      calls, remote desktops and cloud apps. PingMetric measures browser HTTP/application latency
+      and TCP information where available—not raw ICMP ping, because browser JavaScript cannot send
+      arbitrary ICMP Echo requests.
+    </p>
+    <p>
+      People often say “ping” for response time; classic ping normally uses ICMP. RTT is device →
+      server → device time. MinRTT is the lowest observed RTT and RTTVar is its variation.
+    </p>
+    <details id="jitter">
+      <summary>Jitter</summary>
+      <p>
+        Jitter is latency variation. 20, 21, 19, 20 ms is stable; 20, 80, 25, 110 ms is not.
+        PingMetric uses the average absolute difference between consecutive HTTP/application
+        samples. It matters for VoIP, video, games, streaming and remote control.
+      </p>
+    </details>
+    <details>
+      <summary>Loaded latency</summary>
+      <p>
+        Idle latency is responsiveness without traffic. A large rise during load can indicate
+        queueing often associated with bufferbloat, but one browser test cannot diagnose it
+        definitively.
+      </p>
+    </details>
+  </section>
+  <section id="tcp-retransmission">
+    <h2>TCP and retransmission</h2>
+    <p>
+      TCP reliably delivers ordered data using acknowledgements, retransmissions and congestion
+      control. PingMetric’s TCP retransmission estimate is
+      <code>(bytesRetrans / bytesSent) × 100</code> when those fields exist. It is not exact packet
+      loss; a higher value can reflect congestion, Wi-Fi interference, unstable paths or temporary
+      loss.
+    </p>
+  </section>
+  <section id="dual-stack">
+    <h2>IP, routing and dual stack</h2>
+    <p>
+      IPv4 uses 32-bit addresses such as <code>192.0.2.10</code>; IPv6 uses 128-bit addresses such
+      as <code>2001:db8::1234</code>. A connection can be IPv4 only, IPv6 only, dual stack (both
+      protocols, not two connections), or unknown.
+    </p>
+    <p>
+      A public IP can reveal network ownership and approximate region, not usually a precise home
+      address. VPNs, proxies, mobile and CGNAT complicate interpretation.
+    </p>
+    <p>
+      ASN means Autonomous System Number (for example AS55836), identifying a routing organization.
+      CIDR such as <code>203.0.113.0/24</code> describes an IP range. RIR means Regional Internet
+      Registry, an organization that allocates number resources.
+    </p>
+  </section>
+  <section id="webrtc">
+    <h2>WebRTC and privacy</h2>
+    <p>
+      WebRTC supports browser calls, peer-to-peer data and real-time media. ICE candidates may
+      include host, server-reflexive (srflx), or relay addresses; STUN, TURN and mDNS protections
+      influence what is exposed. An additional public address is not automatically a VPN leak.
+    </p>
+  </section>
+  <section>
+    <h2>Network intelligence and browser APIs</h2>
+    <p>
+      VPN, proxy, Tor, datacenter, mobile, satellite, anycast, bogon/reserved, crawler/bot and
+      known-abusive classifications come from external IP intelligence and can have false positives
+      or negatives. Network Information API values (effective type, downlink, RTT) are browser
+      estimates, not M-Lab results. Web Crypto availability does not mean the whole connection is
+      secure.
+    </p>
+    <p>
+      PingMetric uses M-Lab NDT7 for active end-to-end upload/download measurement with a
+      measurement server and test data. Results do not guarantee an ISP-plan speed. DNS leak testing
+      needs controlled DNS infrastructure, so it is unavailable in browser-only mode.
+    </p>
+  </section>
+  <section>
+    <h2>What should I avoid sharing?</h2>
+    <p>
+      Be cautious with screenshots containing full IPv4/IPv6, WebRTC addresses, coordinates, postal
+      code, city plus network identity, ISP/ASN plus exact IP, or CIDR/route. Together, public
+      routing details can make profiling easier. Speeds, latency, jitter, dual-stack status and
+      generic browser support are generally less sensitive. Use “Hide sensitive info” before
+      sharing; it visually hides details but is not encryption.
+    </p>
+  </section>
+</main>

@@ -13,6 +13,7 @@ export type TestPhase =
   | 'failed'
   | 'cancelled';
 export type ThemePreference = 'system' | 'light' | 'dark';
+export type SpeedUnitPreference = 'megabits' | 'megabytes';
 
 export interface AppEnvironment {
   production: boolean;
