@@ -93,10 +93,24 @@
       [disabled]="!network.info().online || speed.isRunning()"
       (click)="requestTest()"
     >
-      <span class="material-symbols-rounded" aria-hidden="true">{{
-        speed.phase() === 'complete' ? 'refresh' : 'speed'
-      }}</span
-      >{{ speed.phase() === 'complete' ? 'Test again' : 'Start test' }}
+      <span
+        class="material-symbols-rounded"
+        [class.loading-icon]="speed.isRunning()"
+        aria-hidden="true"
+        >{{
+          speed.isRunning()
+            ? 'progress_activity'
+            : speed.phase() === 'complete'
+              ? 'refresh'
+              : 'speed'
+        }}</span
+      >{{
+        speed.isRunning()
+          ? 'Starting test…'
+          : speed.phase() === 'complete'
+            ? 'Test again'
+            : 'Start test'
+      }}
     </button>
   </section>
   @if (showDisclosure()) {
@@ -106,29 +120,69 @@
         Speed testing transfers a meaningful amount of data. M-Lab receives measurement information
         needed to run the test.
       </p>
-      <button class="primary" (click)="acceptDisclosure()">Accept and start</button
+      <button class="primary" [disabled]="speed.isRunning()" (click)="acceptDisclosure()">
+        Accept and start</button
       ><button class="quiet" (click)="showDisclosure.set(false)">Not now</button>
     </section>
   }
   @if (speed.isRunning()) {
-    <section class="measurement" aria-live="polite">
+    <section
+      class="measurement"
+      [class.download-phase]="speed.phase() === 'download'"
+      [class.upload-phase]="speed.phase() === 'upload'"
+      aria-live="polite"
+    >
       <div class="phase-track" aria-hidden="true">
         <span [style.width.%]="speed.phaseProgress()"></span>
       </div>
       <p class="phase-label">
-        <span class="activity" aria-hidden="true"></span>{{ speed.phase().replace('-', ' ') }}
+        @if (speed.phase() === 'download' || speed.phase() === 'upload') {
+          <span
+            class="phase-transfer"
+            [class.upload]="speed.phase() === 'upload'"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 32" focusable="false">
+              <path d="M8 0h8v16h6L12 32 2 16h6z"></path>
+            </svg>
+          </span>
+        } @else {
+          <span class="activity" aria-hidden="true"></span>
+        }
+        {{ speed.phase().replace('-', ' ') }}
       </p>
       @if (speed.phase() === 'download' || speed.phase() === 'upload') {
         <div class="live-reading" [class.upload]="speed.phase() === 'upload'">
           <p>Testing {{ speed.phase() }}</p>
-          <strong
-            >{{
-              speedValue(
-                speed.phase() === 'download' ? speed.download().liveMbps : speed.upload().liveMbps
-              ) | number: '1.1-1'
-            }}
-            <small>{{ speedUnit.unitLabel() }}</small></strong
-          ><span
+          <div
+            class="speed-gauge"
+            [class.upload]="speed.phase() === 'upload'"
+            role="img"
+            [attr.aria-label]="
+              'Live ' +
+              speed.phase() +
+              ' speed: ' +
+              (speedValue(liveSpeed()) | number: '1.1-1') +
+              ' ' +
+              speedUnit.unitLabel()
+            "
+          >
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="gauge-track" cx="60" cy="60" r="45"></circle>
+              <circle
+                class="gauge-value"
+                cx="60"
+                cy="60"
+                r="45"
+                [style.stroke-dashoffset]="gaugeDashOffset()"
+              ></circle>
+            </svg>
+            <div class="gauge-reading">
+              <strong>{{ speedValue(liveSpeed()) | number: '1.1-1' }}</strong>
+              <small>{{ speedUnit.unitLabel() }}</small>
+            </div>
+          </div>
+          <span
             >Transferred
             {{
               bytes(speed.phase() === 'download' ? speed.download().bytes : speed.upload().bytes)
@@ -137,7 +191,11 @@
         </div>
       } @else {
         <div class="waiting-reading">
-          <span class="material-symbols-rounded" aria-hidden="true">speed</span>
+          @if (speed.phase() === 'finding-server') {
+            <app-server-discovery-indicator label="Finding an M-Lab measurement server" />
+          } @else {
+            <span class="material-symbols-rounded" aria-hidden="true">speed</span>
+          }
           <p>
             {{
               speed.phase() === 'measuring-latency'
@@ -157,72 +215,74 @@
   @if (speed.latencyError()) {
     <p class="warning" role="status">Latency unavailable · speed testing continued</p>
   }
-  <section class="metrics" aria-label="Speed results">
-    <div class="unit-toggle" aria-label="Speed unit">
-      <button
-        type="button"
-        [class.active]="speedUnit.preference() === 'megabits'"
-        [attr.aria-pressed]="speedUnit.preference() === 'megabits'"
-        (click)="speedUnit.preference.set('megabits')"
-      >
-        Mbps
-      </button>
-      <button
-        type="button"
-        [class.active]="speedUnit.preference() === 'megabytes'"
-        [attr.aria-pressed]="speedUnit.preference() === 'megabytes'"
-        (click)="speedUnit.preference.set('megabytes')"
-      >
-        MB/s
-      </button>
-    </div>
-    <article class="metric download">
-      <span class="material-symbols-rounded" aria-hidden="true">download</span>
-      <p>Download</p>
-      <strong
-        >{{ speedValue(speed.download().mbps) | number: '1.1-1' }}
-        <small>{{ speedUnit.unitLabel() }}</small></strong
-      ><em>{{ bytes(speed.download().bytes) }} transferred</em>
-    </article>
-    <article class="metric upload">
-      <span class="material-symbols-rounded" aria-hidden="true">upload</span>
-      <p>Upload</p>
-      <strong
-        >{{ speedValue(speed.upload().mbps) | number: '1.1-1' }}
-        <small>{{ speedUnit.unitLabel() }}</small></strong
-      ><em>{{ bytes(speed.upload().bytes) }} transferred</em>
-    </article>
-  </section>
-  <section class="secondary-metrics" aria-label="Connection responsiveness">
-    <article class="latency">
-      <span
-        >Latency
-        <a routerLink="/network-guide" fragment="latency" aria-label="Learn about latency"
-          ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
-        ></span
-      ><strong>{{ speed.latency()?.medianMs | number: '1.0-0' }} <small>ms</small></strong>
-    </article>
-    <article class="jitter">
-      <span
-        >Jitter
-        <a routerLink="/network-guide" fragment="jitter" aria-label="Learn about jitter"
-          ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
-        ></span
-      ><strong>{{ speed.latency()?.jitterMs | number: '1.0-0' }} <small>ms</small></strong>
-    </article>
-    <article class="retransmission">
-      <span
-        >TCP retransmission
-        <a
-          routerLink="/network-guide"
-          fragment="tcp-retransmission"
-          aria-label="Learn about TCP retransmission"
-          ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
-        ></span
-      ><strong>{{ retransmission() | number: '1.1-1' }}<small>%</small></strong
-      ><em>Indirect signal</em>
-    </article>
-  </section>
+  @if (shouldShowSpeedResults()) {
+    <section class="metrics" aria-label="Speed results">
+      <div class="unit-toggle" aria-label="Speed unit">
+        <button
+          type="button"
+          [class.active]="speedUnit.preference() === 'megabits'"
+          [attr.aria-pressed]="speedUnit.preference() === 'megabits'"
+          (click)="speedUnit.preference.set('megabits')"
+        >
+          Mbps
+        </button>
+        <button
+          type="button"
+          [class.active]="speedUnit.preference() === 'megabytes'"
+          [attr.aria-pressed]="speedUnit.preference() === 'megabytes'"
+          (click)="speedUnit.preference.set('megabytes')"
+        >
+          MB/s
+        </button>
+      </div>
+      <article class="metric download" [class.active]="speed.phase() === 'download'">
+        <span class="material-symbols-rounded" aria-hidden="true">download</span>
+        <p>Download</p>
+        <strong
+          >{{ speedValue(metricSpeed('download')) | number: '1.1-1' }}
+          <small>{{ speedUnit.unitLabel() }}</small></strong
+        ><em>{{ bytes(speed.download().bytes) }} transferred</em>
+      </article>
+      <article class="metric upload" [class.active]="speed.phase() === 'upload'">
+        <span class="material-symbols-rounded" aria-hidden="true">upload</span>
+        <p>Upload</p>
+        <strong
+          >{{ speedValue(metricSpeed('upload')) | number: '1.1-1' }}
+          <small>{{ speedUnit.unitLabel() }}</small></strong
+        ><em>{{ bytes(speed.upload().bytes) }} transferred</em>
+      </article>
+    </section>
+    <section class="secondary-metrics" aria-label="Connection responsiveness">
+      <article class="latency">
+        <span
+          >Latency
+          <a routerLink="/network-guide" fragment="latency" aria-label="Learn about latency"
+            ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
+          ></span
+        ><strong>{{ speed.latency()?.medianMs | number: '1.0-0' }} <small>ms</small></strong>
+      </article>
+      <article class="jitter">
+        <span
+          >Jitter
+          <a routerLink="/network-guide" fragment="jitter" aria-label="Learn about jitter"
+            ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
+          ></span
+        ><strong>{{ speed.latency()?.jitterMs | number: '1.0-0' }} <small>ms</small></strong>
+      </article>
+      <article class="retransmission">
+        <span
+          >TCP retransmission
+          <a
+            routerLink="/network-guide"
+            fragment="tcp-retransmission"
+            aria-label="Learn about TCP retransmission"
+            ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
+          ></span
+        ><strong>{{ retransmission() | number: '1.1-1' }}<small>%</small></strong
+        ><em>Indirect signal</em>
+      </article>
+    </section>
+  }
   <section class="network-summary card" aria-labelledby="network-title">
     <div>
       <p class="card-kicker">Network</p>
@@ -296,11 +356,19 @@
       [disabled]="refreshingNetwork()"
       (click)="refreshNetwork()"
     >
-      <span class="material-symbols-rounded" aria-hidden="true">sync</span
+      <span
+        class="material-symbols-rounded"
+        [class.loading-icon]="refreshingNetwork()"
+        aria-hidden="true"
+        >{{ refreshingNetwork() ? 'progress_activity' : 'sync' }}</span
       >{{ refreshingNetwork() ? 'Refreshing…' : 'Refresh network info' }}</button
-    ><button class="secondary icon-button" (click)="testWebRtc()">
-      <span class="material-symbols-rounded" aria-hidden="true">privacy_tip</span>Run WebRTC privacy
-      test
+    ><button class="secondary icon-button" [disabled]="webRtcLoading()" (click)="testWebRtc()">
+      @if (webRtcLoading()) {
+        <app-loading-indicator label="Checking WebRTC exposure" />
+      } @else {
+        <span class="material-symbols-rounded" aria-hidden="true">privacy_tip</span>
+      }
+      {{ webRtcLoading() ? 'Checking WebRTC exposure…' : 'Run WebRTC privacy test' }}
     </button>
   </section>
   @if (lastNetworkRefresh()) {
@@ -328,19 +396,38 @@
         role="switch"
         aria-label="IP intelligence"
         [attr.aria-checked]="intelligencePreference.enabled()"
+        [disabled]="intelligenceLoading()"
         (click)="setIntelligenceEnabled(!intelligencePreference.enabled())"
       >
-        <span class="material-symbols-rounded" aria-hidden="true">{{
-          intelligencePreference.enabled() ? 'toggle_on' : 'toggle_off'
+        <span class="switch-track" aria-hidden="true">
+          @if (intelligenceLoading()) {
+            <app-loading-indicator
+              [size]="0.28"
+              color="var(--surface)"
+              label="Loading IP intelligence"
+            />
+          } @else {
+            <span class="switch-thumb"></span>
+          }
+        </span>
+        <span class="switch-status">{{
+          intelligenceLoading() ? 'Loading' : intelligencePreference.enabled() ? 'On' : 'Off'
         }}</span>
-        {{ intelligencePreference.enabled() ? 'On' : 'Off' }}
       </button>
     </div>
     @if (!intelligencePreference.enabled()) {
       <p class="intelligence-state"><strong>IP intelligence off</strong></p>
       <p class="muted">ipapi.is is not being used</p>
     } @else if (intelligenceLoading()) {
-      <p class="intelligence-state" role="status">Loading IP intelligence…</p>
+      <div class="intelligence-loading">
+        <app-loading-indicator
+          [size]="0.9"
+          color="var(--accent)"
+          label="Loading IP intelligence"
+          text="Loading IP intelligence"
+          description="Retrieving provider and network classification details…"
+        />
+      </div>
     } @else if (intelligence()) {
       @if (securityRows().length) {
         <div class="security-list">
@@ -594,58 +681,112 @@
     </div>
   </section>
   <section class="card browser-privacy" aria-labelledby="privacy-title">
-    <h2 id="privacy-title">Browser privacy</h2>
-    <dl>
-      <dt>Secure context</dt>
-      <dd>{{ network.info().secureContext ? 'Available' : 'Not available' }}</dd>
-      <dt>Web Crypto</dt>
-      <dd>{{ network.info().webCrypto ? 'Available' : 'Unavailable' }}</dd>
-      <dt>WebRTC</dt>
-      <dd>{{ network.info().webRtc ? 'Supported' : 'Unsupported' }}</dd>
-      <dt>Network Information API</dt>
-      <dd>{{ network.info().networkInformation ? 'Supported' : 'Not available' }}</dd>
-      <dt>DNS leak test</dt>
-      <dd>Not available in browser-only mode</dd>
+    <div class="privacy-heading">
+      <span class="material-symbols-rounded" aria-hidden="true">shield</span>
+      <div>
+        <p class="card-kicker">Browser capabilities</p>
+        <h2 id="privacy-title">Browser privacy</h2>
+      </div>
+    </div>
+    <p class="privacy-description">
+      Browser-provided protections and diagnostics available to PingMetric.
+    </p>
+    <dl class="privacy-list">
+      <dt><span class="material-symbols-rounded" aria-hidden="true">lock</span>Secure context</dt>
+      <dd [class.unavailable]="!network.info().secureContext">
+        {{ network.info().secureContext ? 'Available' : 'Not available' }}
+      </dd>
+      <dt><span class="material-symbols-rounded" aria-hidden="true">security</span>Web Crypto</dt>
+      <dd [class.unavailable]="!network.info().webCrypto">
+        {{ network.info().webCrypto ? 'Available' : 'Unavailable' }}
+      </dd>
+      <dt><span class="material-symbols-rounded" aria-hidden="true">lan</span>WebRTC</dt>
+      <dd [class.unavailable]="!network.info().webRtc">
+        {{ network.info().webRtc ? 'Supported' : 'Unsupported' }}
+      </dd>
+      <dt>
+        <span class="material-symbols-rounded" aria-hidden="true">network_check</span>Network
+        Information API
+      </dt>
+      <dd [class.unavailable]="!network.info().networkInformation">
+        {{ network.info().networkInformation ? 'Supported' : 'Not available' }}
+      </dd>
+      <dt><span class="material-symbols-rounded" aria-hidden="true">dns</span>DNS leak test</dt>
+      <dd class="unavailable">Not available in browser-only mode</dd>
     </dl>
   </section>
   <section class="card webrtc" aria-labelledby="webrtc-title">
-    <h2 id="webrtc-title">WebRTC exposure</h2>
-    <p>{{ rtc()?.outcome || 'Not tested' }}</p>
-    @if (rtc()?.candidates?.length) {
-      <ul>
-        @for (candidate of rtc()?.candidates ?? []; track candidate.address + candidate.type) {
-          <li class="candidate-row">
-            <div class="candidate-heading">
-              <strong>{{ candidateLabel(candidate.type) }}</strong>
-              @if (candidateAnchor(candidate.type); as anchor) {
-                <a
-                  routerLink="/network-guide"
-                  [fragment]="anchor"
-                  [attr.aria-label]="'Learn about ' + candidateLabel(candidate.type)"
-                  title="Learn about this candidate type"
-                  ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
-                >
-              }
-            </div>
-            <app-sensitive-value [value]="candidate.address" />
-          </li>
-        }
-      </ul>
+    <div class="webrtc-heading">
+      <span class="material-symbols-rounded" aria-hidden="true">privacy_tip</span>
+      <div>
+        <p class="card-kicker">Browser privacy</p>
+        <h2 id="webrtc-title">WebRTC exposure</h2>
+      </div>
+    </div>
+    @if (webRtcLoading()) {
+      <div class="webrtc-loading" aria-live="polite">
+        <app-loading-indicator
+          [size]="1.35"
+          color="var(--accent)"
+          label="Checking WebRTC exposure"
+          text="Checking WebRTC exposure"
+          description="Collecting browser-visible connection candidates…"
+        />
+      </div>
+    } @else {
+      <p class="webrtc-outcome">
+        {{ rtc()?.outcome || 'Run the privacy test to inspect browser-visible candidates.' }}
+      </p>
+      @if (rtc()?.candidates?.length) {
+        <ul class="candidate-list" aria-label="WebRTC candidates">
+          @for (candidate of rtc()?.candidates ?? []; track candidate.address + candidate.type) {
+            <li class="candidate-row">
+              <span class="candidate-icon material-symbols-rounded" aria-hidden="true">{{
+                candidateIcon(candidate.type)
+              }}</span>
+              <div class="candidate-content">
+                <div class="candidate-heading">
+                  <strong>{{ candidateLabel(candidate.type) }}</strong>
+                  @if (candidateAnchor(candidate.type); as anchor) {
+                    <a
+                      routerLink="/network-guide"
+                      [fragment]="anchor"
+                      [attr.aria-label]="'Learn about ' + candidateLabel(candidate.type)"
+                      title="Learn about this candidate type"
+                      ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
+                    >
+                  }
+                </div>
+                <code><app-sensitive-value [value]="candidate.address" /></code>
+              </div>
+            </li>
+          }
+        </ul>
+      }
     }
   </section>
   <details class="card technical">
-    <summary>Advanced technical details</summary>
-    <p>
-      Measurement server:
-      <app-sensitive-value [value]="speed.server()?.hostname || speed.server()?.endpoint" />
+    <summary>
+      <span class="material-symbols-rounded" aria-hidden="true">data_usage</span>Advanced technical
+      details
+    </summary>
+    <p class="technical-intro">
+      Supporting browser and measurement details. Values are available after a completed test where
+      supported.
     </p>
-    <p>
-      Address observed by measurement server:
-      <app-sensitive-value [value]="speed.server()?.observedClientAddress" />
-    </p>
-    <p>
-      Browser estimate: {{ speedValue(network.info().downlink) ?? 'Not exposed' }}
-      {{ speedUnit.unitLabel() }} · {{ network.info().rtt || 'Not exposed' }} ms
-    </p>
+    <dl>
+      <dt>Measurement server</dt>
+      <dd>
+        <app-sensitive-value [value]="speed.server()?.hostname || speed.server()?.endpoint" />
+      </dd>
+      <dt>Address observed by measurement server</dt>
+      <dd><app-sensitive-value [value]="speed.server()?.observedClientAddress" /></dd>
+      <dt>Browser downlink estimate</dt>
+      <dd>
+        {{ speedValue(network.info().downlink) ?? 'Not exposed' }} {{ speedUnit.unitLabel() }}
+      </dd>
+      <dt>Browser RTT estimate</dt>
+      <dd>{{ network.info().rtt ?? 'Not exposed' }} ms</dd>
+    </dl>
   </details>
 </main>

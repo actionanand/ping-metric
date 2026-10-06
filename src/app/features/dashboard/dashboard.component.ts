@@ -13,6 +13,8 @@ import { WebRtcLeakService } from '../../core/services/webrtc-leak.service';
 import { PrivacyDisplayService } from '../../core/services/privacy-display.service';
 import { SpeedUnitService } from '../../core/services/speed-unit.service';
 import { SensitiveValueComponent } from '../../shared/components/sensitive-value/sensitive-value.component';
+import { LoadingIndicatorComponent } from '../../shared/components/loading-indicator/loading-indicator.component';
+import { ServerDiscoveryIndicatorComponent } from '../../shared/components/server-discovery-indicator/server-discovery-indicator.component';
 import type {
   IpAddresses,
   IpIntelligence,
@@ -35,7 +37,14 @@ export function providerStatusIcon(
 
 @Component({
   selector: 'app-dashboard',
-  imports: [NgOptimizedImage, RouterLink, DecimalPipe, SensitiveValueComponent],
+  imports: [
+    NgOptimizedImage,
+    RouterLink,
+    DecimalPipe,
+    SensitiveValueComponent,
+    LoadingIndicatorComponent,
+    ServerDiscoveryIndicatorComponent,
+  ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -62,6 +71,7 @@ export class DashboardComponent {
   protected readonly intelligenceMode = signal<IpIntelligenceMode | undefined>('disabled');
   protected readonly intelligenceLoading = signal(false);
   protected readonly refreshingNetwork = signal(false);
+  protected readonly webRtcLoading = signal(false);
   protected readonly lastNetworkRefresh = signal<Date | undefined>(undefined);
   protected readonly rtc = signal<WebRtcLeakResult | undefined>(undefined);
   protected readonly securityRows = computed(() => {
@@ -215,7 +225,13 @@ export class DashboardComponent {
     }
   }
   async testWebRtc(): Promise<void> {
-    this.rtc.set(await this.webrtc.test(this.ips()));
+    if (this.webRtcLoading()) return;
+    this.webRtcLoading.set(true);
+    try {
+      this.rtc.set(await this.webrtc.test(this.ips()));
+    } finally {
+      this.webRtcLoading.set(false);
+    }
   }
   copy(value: string | undefined): void {
     if (value && this.privacy.sensitiveVisible()) void navigator.clipboard?.writeText(value);
@@ -228,6 +244,41 @@ export class DashboardComponent {
   }
   protected retransmission(): number | undefined {
     return retransmissionPercent(this.speed.upload().tcp ?? this.speed.download().tcp);
+  }
+  protected hasCompletedResults(): boolean {
+    return (
+      this.speed.phase() === 'complete' &&
+      (this.speed.download().mbps !== undefined ||
+        this.speed.upload().mbps !== undefined ||
+        this.speed.latency() !== undefined)
+    );
+  }
+  protected shouldShowSpeedResults(): boolean {
+    const phase = this.speed.phase();
+    return (
+      phase === 'download' ||
+      phase === 'upload' ||
+      phase === 'finalizing' ||
+      this.speed.download().liveMbps !== undefined ||
+      this.speed.download().mbps !== undefined ||
+      this.speed.upload().liveMbps !== undefined ||
+      this.speed.upload().mbps !== undefined
+    );
+  }
+  protected metricSpeed(direction: 'download' | 'upload'): number | undefined {
+    const measurement = direction === 'download' ? this.speed.download() : this.speed.upload();
+    return measurement.liveMbps ?? measurement.mbps;
+  }
+  protected liveSpeed(): number | undefined {
+    return this.speed.phase() === 'upload'
+      ? this.metricSpeed('upload')
+      : this.metricSpeed('download');
+  }
+  protected gaugeDashOffset(): number {
+    const speed = this.liveSpeed() ?? 0;
+    // Logarithmic scaling keeps the gauge useful at both low and high real speeds.
+    const progress = Math.min(100, (Math.log10(speed + 1) / Math.log10(1001)) * 100);
+    return 282.74 * (1 - progress / 100);
   }
   protected bytes(value: number | undefined): string {
     if (value === undefined) return '—';
@@ -318,6 +369,18 @@ export class DashboardComponent {
     return normalized === 'host' || normalized === 'srflx' || normalized === 'relay'
       ? normalized
       : undefined;
+  }
+  protected candidateIcon(type: string): string {
+    switch (type.toLowerCase()) {
+      case 'host':
+        return 'lan';
+      case 'srflx':
+        return 'public';
+      case 'relay':
+        return 'router';
+      default:
+        return 'network_check';
+    }
   }
   protected providerTitle(): string {
     if (!this.intelligencePreference.enabled()) return 'IP intelligence off';

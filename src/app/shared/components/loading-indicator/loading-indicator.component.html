@@ -1,0 +1,16 @@
+<span
+  class="loading-indicator"
+  [class.with-copy]="text() || description()"
+  role="status"
+  [attr.aria-label]="text() || label()"
+  [style.--loader-size]="size() + 'px'"
+  [style.--loader-color]="color()"
+>
+  <span class="spinner" aria-hidden="true"></span>
+  @if (text(); as loaderText) {
+    <strong>{{ loaderText }}</strong>
+  }
+  @if (description(); as loaderDescription) {
+    <small>{{ loaderDescription }}</small>
+  }
+</span>
