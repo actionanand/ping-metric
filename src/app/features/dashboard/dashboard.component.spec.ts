@@ -7,6 +7,7 @@ import type {
   IpIntelligenceResult,
 } from '../../core/models/app.models';
 import { AuthService } from '../../core/services/auth.service';
+import { CurrentNetworkContextService } from '../../core/services/current-network-context.service';
 import { HistoryService } from '../../core/services/history.service';
 import { IpAddressService } from '../../core/services/ip-address.service';
 import { IpIntelligenceService } from '../../core/services/ip-intelligence.service';
@@ -60,6 +61,7 @@ type IntelligenceLookup = (ip: string, signal: AbortSignal) => Promise<IpIntelli
 
 async function createDashboardFixture(
   lookup: IntelligenceLookup,
+  intelligenceEnabled = true,
 ): Promise<ComponentFixture<DashboardComponent>> {
   await TestBed.configureTestingModule({
     imports: [DashboardComponent],
@@ -90,7 +92,7 @@ async function createDashboardFixture(
     ],
   }).compileComponents();
 
-  TestBed.inject(IpIntelligencePreferenceService).setEnabled(true);
+  TestBed.inject(IpIntelligencePreferenceService).setEnabled(intelligenceEnabled);
   const fixture = TestBed.createComponent(DashboardComponent);
   fixture.detectChanges();
   await Promise.resolve();
@@ -104,6 +106,7 @@ async function createDashboardFixture(
 
 describe('Dashboard IP intelligence opt-in', () => {
   afterEach(() => {
+    vi.unstubAllGlobals();
     TestBed.resetTestingModule();
     localStorage.removeItem(ipIntelligenceStorageKey);
   });
@@ -143,6 +146,32 @@ describe('Dashboard IP intelligence opt-in', () => {
 
     expect(fixture.nativeElement.textContent).not.toContain('Late ISP response');
     expect(fixture.nativeElement.textContent).toContain('ipapi.is is not being used');
+  });
+
+  it('finishes public IP loading while intelligence is off without running an effect loop or IPAPI request', async () => {
+    const lookup = vi.fn((_ip: string, _signal: AbortSignal) => {
+      void _ip;
+      void _signal;
+      return Promise.resolve({ state: 'available' as const, providerMode: 'anonymous' as const });
+    });
+    const fetchMock = vi.fn<typeof fetch>();
+    vi.stubGlobal('fetch', fetchMock);
+    const fixture = await createDashboardFixture(lookup, false);
+    const currentContext = TestBed.inject(CurrentNetworkContextService);
+    const updateIntelligence = vi.spyOn(currentContext, 'updateIntelligence');
+
+    expect(currentContext.snapshot()).toMatchObject({
+      protocol: 'IPv4 only',
+      ipv4: '198.51.100.20',
+    });
+    expect(fixture.nativeElement.textContent).toContain('IP intelligence off');
+    expect(fixture.nativeElement.textContent).toContain('ipapi.is is not being used');
+    expect(lookup).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    currentContext.updateNetwork({ ...addresses, protocol: 'Dual stack' }, networkInfo());
+    TestBed.flushEffects();
+    expect(updateIntelligence).not.toHaveBeenCalled();
   });
 
   it('omits empty summary rows, detail groups, and unknown security classifications', async () => {

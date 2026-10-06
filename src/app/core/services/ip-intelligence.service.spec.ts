@@ -32,6 +32,7 @@ describe('IP intelligence lookup', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
     TestBed.resetTestingModule();
     localStorage.removeItem(ipIntelligenceStorageKey);
     environment.ip.intelligenceEndpoint = originalEndpoint;
@@ -69,7 +70,7 @@ describe('IP intelligence lookup', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(requestedUrl(0).searchParams.get('q')).toBe(ip);
     expect(requestedUrl(0).searchParams.has('key')).toBe(false);
-    expect(fetchMock.mock.calls[0][1]).toEqual({ cache: 'no-store' });
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ cache: 'no-store' });
   });
 
   it('uses the full successful keyed response without retrying', async () => {
@@ -126,7 +127,7 @@ describe('IP intelligence lookup', () => {
     const expectedAnonymousUrl = requestedUrl(0);
     expectedAnonymousUrl.searchParams.delete('key');
     expect(requestedUrl(1).href).toBe(expectedAnonymousUrl.href);
-    expect(fetchMock.mock.calls[1][1]).toEqual({ cache: 'no-store' });
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({ cache: 'no-store' });
     expect(result).toMatchObject({
       state: 'available',
       providerMode: 'anonymous-fallback',
@@ -210,6 +211,50 @@ describe('IP intelligence lookup', () => {
     fetchMock.mockRejectedValueOnce(new Error('Network error'));
 
     await expect(service.lookup(ip)).resolves.toMatchObject({ state: 'unavailable' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('aborts a provider request after eight seconds and returns unavailable', async () => {
+    vi.useFakeTimers();
+    let requestSignal: AbortSignal | null | undefined;
+    fetchMock.mockImplementation(
+      (_input, init) =>
+        new Promise((_resolve, reject) => {
+          requestSignal = init?.signal;
+          init?.signal?.addEventListener('abort', () =>
+            reject(new DOMException('Aborted', 'AbortError')),
+          );
+        }),
+    );
+    const request = service.lookup(ip);
+
+    await vi.advanceTimersByTimeAsync(8000);
+
+    await expect(request).resolves.toEqual({
+      state: 'unavailable',
+      message: 'IP intelligence provider could not be reached.',
+    });
+    expect(requestSignal?.aborted).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('relays dashboard cancellation immediately and does not retry', async () => {
+    const controller = new AbortController();
+    let requestSignal: AbortSignal | null | undefined;
+    fetchMock.mockImplementation(
+      (_input, init) =>
+        new Promise((_resolve, reject) => {
+          requestSignal = init?.signal;
+          init?.signal?.addEventListener('abort', () =>
+            reject(new DOMException('Aborted', 'AbortError')),
+          );
+        }),
+    );
+    const request = service.lookup(ip, controller.signal);
+    controller.abort();
+
+    await expect(request).resolves.toMatchObject({ state: 'unavailable' });
+    expect(requestSignal?.aborted).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 

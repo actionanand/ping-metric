@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { afterEach, describe, expect, it } from 'vitest';
+import { effect, signal } from '@angular/core';
 import type { IpAddresses, IpIntelligence, NetworkCapabilities } from '../models/app.models';
 import { CurrentNetworkContextService } from './current-network-context.service';
 
@@ -41,6 +43,8 @@ function intelligence(isp: string, city: string): IpIntelligence {
 }
 
 describe('CurrentNetworkContextService', () => {
+  afterEach(() => TestBed.resetTestingModule());
+
   it('updates known context and preserves frozen snapshots when the network changes', () => {
     const service = new CurrentNetworkContextService();
     service.updateNetwork(addresses('198.51.100.1', 'IPv4 only'), capabilities);
@@ -89,5 +93,35 @@ describe('CurrentNetworkContextService', () => {
       region: undefined,
       city: undefined,
     });
+  });
+
+  it('does not make updater reads dependencies of an effect that calls them', () => {
+    const service = TestBed.inject(CurrentNetworkContextService);
+    service.updateNetwork(addresses('198.51.100.1', 'IPv4 only'), capabilities);
+    const trigger = signal(0);
+    let effectRuns = 0;
+
+    TestBed.runInInjectionContext(() =>
+      effect(() => {
+        trigger();
+        effectRuns++;
+        if (effectRuns === 1) {
+          service.updateNetwork(addresses('203.0.113.2', 'Dual stack'), capabilities);
+          service.updateIntelligence(undefined);
+        }
+      }),
+    );
+    TestBed.flushEffects();
+    expect(effectRuns).toBe(1);
+
+    service.current.update((current) =>
+      current ? Object.freeze({ ...current, effectiveType: '3g' }) : current,
+    );
+    TestBed.flushEffects();
+    expect(effectRuns).toBe(1);
+
+    trigger.set(1);
+    TestBed.flushEffects();
+    expect(effectRuns).toBe(2);
   });
 });
