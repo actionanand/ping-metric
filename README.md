@@ -2,6 +2,10 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.7.
 
+## Privacy and measurement display
+
+PingMetric can visually hide sensitive IP, location, provider, and network-identifying values before sharing a screen or screenshot. The choice resets when the app reloads. Speed measurements and saved history remain canonical Mbps values; the optional MB/s display is calculated as `Mbps / 8`. The in-app Network Guide explains these terms and browser-only diagnostic limitations.
+
 ## Development server
 
 To start a local development server, run:

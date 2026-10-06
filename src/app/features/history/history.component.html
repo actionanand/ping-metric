@@ -1,15 +1,29 @@
 <main class="page">
   <a routerLink="/">← Dashboard</a>
   <h1>Test history</h1>
+  <button
+    class="secondary"
+    type="button"
+    [attr.aria-pressed]="privacy.sensitiveVisible()"
+    (click)="privacy.toggle()"
+  >
+    {{ privacy.sensitiveVisible() ? 'Hide sensitive info' : 'Show sensitive info' }}
+  </button>
   <p>Completed normalized results are stored only in this browser.</p>
   @if (history.entries().length) {
     <section class="summary">
       <span
         >Average download
-        <strong>{{ history.summary().averageDownload | number: '1.1-1' }} Mbps</strong></span
+        <strong
+          >{{ speedValue(history.summary().averageDownload) | number: '1.1-1' }}
+          {{ speedUnit.unitLabel() }}</strong
+        ></span
       ><span
         >Best download
-        <strong>{{ history.summary().bestDownload | number: '1.1-1' }} Mbps</strong></span
+        <strong
+          >{{ speedValue(history.summary().bestDownload) | number: '1.1-1' }}
+          {{ speedUnit.unitLabel() }}</strong
+        ></span
       ><span
         >Lowest latency
         <strong>{{ history.summary().lowestLatency | number: '1.0-0' }} ms</strong></span
@@ -21,16 +35,14 @@
         <article>
           <strong>{{ entry.timestamp | date: 'medium' }}</strong>
           <p>
-            ↓ {{ entry.download.mbps | number: '1.1-1' }} Mbps · ↑
-            {{ entry.upload.mbps | number: '1.1-1' }} Mbps ·
+            ↓ {{ speedValue(entry.download.mbps) | number: '1.1-1' }} {{ speedUnit.unitLabel() }} ·
+            ↑ {{ speedValue(entry.upload.mbps) | number: '1.1-1' }} {{ speedUnit.unitLabel() }} ·
             {{ entry.latency?.medianMs | number: '1.0-0' }} ms
           </p>
           <p>
-            {{
-              entry.intelligence?.organization ||
-                entry.ip?.default?.value?.address ||
-                'Network details unavailable'
-            }}
+            <app-sensitive-value
+              [value]="entry.intelligence?.organization || entry.ip?.default?.value?.address"
+            />
           </p>
           <button class="quiet" (click)="history.remove(entry.id)">Delete</button>
         </article>

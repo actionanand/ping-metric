@@ -8,6 +8,9 @@ import { IpIntelligenceService } from '../../core/services/ip-intelligence.servi
 import { NetworkInfoService } from '../../core/services/network-info.service';
 import { SpeedTestService } from '../../core/services/speed-test.service';
 import { WebRtcLeakService } from '../../core/services/webrtc-leak.service';
+import { PrivacyDisplayService } from '../../core/services/privacy-display.service';
+import { SpeedUnitService } from '../../core/services/speed-unit.service';
+import { SensitiveValueComponent } from '../../shared/components/sensitive-value/sensitive-value.component';
 import type {
   IpAddresses,
   IpIntelligence,
@@ -18,7 +21,7 @@ import { retransmissionPercent } from '../../shared/utils/network.utils';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [NgOptimizedImage, RouterLink, DecimalPipe],
+  imports: [NgOptimizedImage, RouterLink, DecimalPipe, SensitiveValueComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -26,6 +29,8 @@ export class DashboardComponent {
   protected readonly auth = inject(AuthService);
   protected readonly speed = inject(SpeedTestService);
   protected readonly network = inject(NetworkInfoService);
+  protected readonly privacy = inject(PrivacyDisplayService);
+  protected readonly speedUnit = inject(SpeedUnitService);
   private readonly ipService = inject(IpAddressService);
   private readonly intelligenceService = inject(IpIntelligenceService);
   private readonly history = inject(HistoryService);
@@ -126,7 +131,7 @@ export class DashboardComponent {
     this.rtc.set(await this.webrtc.test(this.ips()));
   }
   copy(value: string | undefined): void {
-    if (value) void navigator.clipboard?.writeText(value);
+    if (value && this.privacy.sensitiveVisible()) void navigator.clipboard?.writeText(value);
   }
   async lock(): Promise<void> {
     this.closeNavigation();
@@ -193,5 +198,8 @@ export class DashboardComponent {
         : this.intelligenceMode() === 'anonymous'
           ? 'provider-anonymous'
           : 'provider-unavailable';
+  }
+  protected speedValue(value: number | undefined): number | undefined {
+    return this.speedUnit.displayValue(value);
   }
 }

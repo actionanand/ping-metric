@@ -4,6 +4,7 @@ import { ThemeService } from '../../core/services/theme.service';
 import { HistoryService } from '../../core/services/history.service';
 import { AuthService } from '../../core/services/auth.service';
 import type { ThemePreference } from '../../core/models/app.models';
+import { SpeedUnitService } from '../../core/services/speed-unit.service';
 
 @Component({
   selector: 'app-settings',
@@ -13,6 +14,7 @@ import type { ThemePreference } from '../../core/models/app.models';
 })
 export class SettingsComponent {
   protected readonly theme = inject(ThemeService);
+  protected readonly speedUnit = inject(SpeedUnitService);
   private readonly history = inject(HistoryService);
   private readonly auth = inject(AuthService);
   protected setTheme(value: string): void {

@@ -5,10 +5,22 @@
   <nav class="desktop-nav" aria-label="Primary">
     <a routerLink="/history"
       ><span class="material-symbols-rounded" aria-hidden="true">history</span>History</a
+    ><a routerLink="/network-guide"
+      ><span class="material-symbols-rounded" aria-hidden="true">school</span>Network Guide</a
     ><a routerLink="/settings"
       ><span class="material-symbols-rounded" aria-hidden="true">settings</span>Settings</a
     ><a routerLink="/about"
       ><span class="material-symbols-rounded" aria-hidden="true">info</span>About</a
+    ><button
+      class="quiet privacy-toggle"
+      type="button"
+      [attr.aria-pressed]="privacy.sensitiveVisible()"
+      (click)="privacy.toggle()"
+    >
+      <span class="material-symbols-rounded" aria-hidden="true">{{
+        privacy.sensitiveVisible() ? 'visibility_off' : 'visibility'
+      }}</span
+      >{{ privacy.sensitiveVisible() ? 'Hide sensitive info' : 'Show sensitive info' }}</button
     ><button class="quiet nav-lock" (click)="lock()">
       <span class="material-symbols-rounded" aria-hidden="true">lock</span>Lock
     </button>
@@ -45,8 +57,16 @@
     <nav>
       <a routerLink="/" (click)="closeNavigation()">Dashboard</a
       ><a routerLink="/history" (click)="closeNavigation()">History</a
+      ><a routerLink="/network-guide" (click)="closeNavigation()">Network Guide</a
       ><a routerLink="/settings" (click)="closeNavigation()">Settings</a
       ><a routerLink="/about" (click)="closeNavigation()">About</a
+      ><button
+        class="quiet"
+        type="button"
+        [attr.aria-pressed]="privacy.sensitiveVisible()"
+        (click)="privacy.toggle()"
+      >
+        {{ privacy.sensitiveVisible() ? 'Hide sensitive info' : 'Show sensitive info' }}</button
       ><button class="quiet" type="button" (click)="lock()">Lock</button>
     </nav>
   </div>
@@ -96,10 +116,11 @@
           <p>Testing {{ speed.phase() }}</p>
           <strong
             >{{
-              (speed.phase() === 'download' ? speed.download().liveMbps : speed.upload().liveMbps)
-                | number: '1.1-1'
+              speedValue(
+                speed.phase() === 'download' ? speed.download().liveMbps : speed.upload().liveMbps
+              ) | number: '1.1-1'
             }}
-            <small>Mbps</small></strong
+            <small>{{ speedUnit.unitLabel() }}</small></strong
           ><span
             >Transferred
             {{
@@ -130,30 +151,67 @@
     <p class="warning" role="status">Latency unavailable · speed testing continued</p>
   }
   <section class="metrics" aria-label="Speed results">
+    <div class="unit-toggle" aria-label="Speed unit">
+      <button
+        type="button"
+        [class.active]="speedUnit.preference() === 'megabits'"
+        [attr.aria-pressed]="speedUnit.preference() === 'megabits'"
+        (click)="speedUnit.preference.set('megabits')"
+      >
+        Mbps
+      </button>
+      <button
+        type="button"
+        [class.active]="speedUnit.preference() === 'megabytes'"
+        [attr.aria-pressed]="speedUnit.preference() === 'megabytes'"
+        (click)="speedUnit.preference.set('megabytes')"
+      >
+        MB/s
+      </button>
+    </div>
     <article class="metric download">
       <span class="material-symbols-rounded" aria-hidden="true">download</span>
       <p>Download</p>
-      <strong>{{ speed.download().mbps | number: '1.1-1' }} <small>Mbps</small></strong
+      <strong
+        >{{ speedValue(speed.download().mbps) | number: '1.1-1' }}
+        <small>{{ speedUnit.unitLabel() }}</small></strong
       ><em>{{ bytes(speed.download().bytes) }} transferred</em>
     </article>
     <article class="metric upload">
       <span class="material-symbols-rounded" aria-hidden="true">upload</span>
       <p>Upload</p>
-      <strong>{{ speed.upload().mbps | number: '1.1-1' }} <small>Mbps</small></strong
+      <strong
+        >{{ speedValue(speed.upload().mbps) | number: '1.1-1' }}
+        <small>{{ speedUnit.unitLabel() }}</small></strong
       ><em>{{ bytes(speed.upload().bytes) }} transferred</em>
     </article>
   </section>
   <section class="secondary-metrics" aria-label="Connection responsiveness">
     <article class="latency">
-      <span>Latency</span
+      <span
+        >Latency
+        <a routerLink="/network-guide" fragment="latency" aria-label="Learn about latency"
+          ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
+        ></span
       ><strong>{{ speed.latency()?.medianMs | number: '1.0-0' }} <small>ms</small></strong>
     </article>
     <article class="jitter">
-      <span>Jitter</span
+      <span
+        >Jitter
+        <a routerLink="/network-guide" fragment="jitter" aria-label="Learn about jitter"
+          ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
+        ></span
       ><strong>{{ speed.latency()?.jitterMs | number: '1.0-0' }} <small>ms</small></strong>
     </article>
     <article class="retransmission">
-      <span>TCP retransmission</span
+      <span
+        >TCP retransmission
+        <a
+          routerLink="/network-guide"
+          fragment="tcp-retransmission"
+          aria-label="Learn about TCP retransmission"
+          ><span class="material-symbols-rounded" aria-hidden="true">help</span></a
+        ></span
       ><strong>{{ retransmission() | number: '1.1-1' }}<small>%</small></strong
       ><em>Indirect signal</em>
     </article>
@@ -161,10 +219,10 @@
   <section class="network-summary card" aria-labelledby="network-title">
     <div>
       <p class="card-kicker">Network</p>
-      <h2 id="network-title">{{ intelligence()?.organization || 'Network information' }}</h2>
+      <h2 id="network-title"><app-sensitive-value [value]="intelligence()?.organization" /></h2>
       <p>
-        {{ intelligence()?.asn || 'ASN unavailable' }} ·
-        {{ intelligence()?.city || intelligence()?.country || 'Location unavailable' }}
+        <app-sensitive-value [value]="intelligence()?.asn" /> ·
+        <app-sensitive-value [value]="intelligence()?.city || intelligence()?.country" />
       </p>
       <p>
         {{ ips()?.protocol || 'Protocol unknown' }} ·
@@ -232,7 +290,9 @@
           <dl>
             <dt>Provider</dt>
             <dd>
-              {{ present(intelligence()?.companyDetails?.name || intelligence()?.organization) }}
+              <app-sensitive-value
+                [value]="intelligence()?.companyDetails?.name || intelligence()?.organization"
+              />
             </dd>
             <dt>Network type</dt>
             <dd>
@@ -241,13 +301,17 @@
               }}</span>
             </dd>
             <dt>Domain</dt>
-            <dd>{{ present(intelligence()?.companyDetails?.domain) }}</dd>
+            <dd><app-sensitive-value [value]="intelligence()?.companyDetails?.domain" /></dd>
             <dt>Network</dt>
             <dd class="mono">
-              {{ present(intelligence()?.companyDetails?.network || intelligence()?.network) }}
+              <app-sensitive-value
+                [value]="intelligence()?.companyDetails?.network || intelligence()?.network"
+              />
             </dd>
             <dt>Netname</dt>
-            <dd class="mono">{{ present(intelligence()?.companyDetails?.netname) }}</dd>
+            <dd class="mono">
+              <app-sensitive-value [value]="intelligence()?.companyDetails?.netname" />
+            </dd>
             <dt>Provider reputation</dt>
             <dd>{{ present(intelligence()?.companyDetails?.abuserScore) }}</dd>
           </dl>
@@ -257,14 +321,18 @@
           <dl>
             <dt>ASN</dt>
             <dd class="mono">
-              {{ present(intelligence()?.asnDetails?.asn || intelligence()?.asn) }}
+              <app-sensitive-value
+                [value]="intelligence()?.asnDetails?.asn || intelligence()?.asn"
+              />
             </dd>
             <dt>Route</dt>
-            <dd class="mono">{{ present(intelligence()?.asnDetails?.route) }}</dd>
+            <dd class="mono">
+              <app-sensitive-value [value]="intelligence()?.asnDetails?.route" />
+            </dd>
             <dt>Description</dt>
             <dd>{{ present(intelligence()?.asnDetails?.description) }}</dd>
             <dt>Organization</dt>
-            <dd>{{ present(intelligence()?.asnDetails?.organization) }}</dd>
+            <dd><app-sensitive-value [value]="intelligence()?.asnDetails?.organization" /></dd>
             <dt>Country</dt>
             <dd>{{ present(intelligence()?.asnDetails?.country) }}</dd>
             <dt>Status</dt>
@@ -278,7 +346,7 @@
               }}
             </dd>
             <dt>Domain</dt>
-            <dd>{{ present(intelligence()?.asnDetails?.domain) }}</dd>
+            <dd><app-sensitive-value [value]="intelligence()?.asnDetails?.domain" /></dd>
             <dt>RIR</dt>
             <dd>{{ present(intelligence()?.asnDetails?.rir || intelligence()?.rir) }}</dd>
             <dt>Updated</dt>
@@ -291,13 +359,13 @@
           <h3>Approximate IP-based location</h3>
           <dl>
             <dt>City</dt>
-            <dd>{{ present(intelligence()?.locationDetails?.city) }}</dd>
+            <dd><app-sensitive-value [value]="intelligence()?.locationDetails?.city" /></dd>
             <dt>Region</dt>
-            <dd>{{ present(intelligence()?.locationDetails?.region) }}</dd>
+            <dd><app-sensitive-value [value]="intelligence()?.locationDetails?.region" /></dd>
             <dt>Country</dt>
             <dd>{{ present(intelligence()?.locationDetails?.country) }}</dd>
             <dt>Postal code</dt>
-            <dd>{{ present(intelligence()?.locationDetails?.postalCode) }}</dd>
+            <dd><app-sensitive-value [value]="intelligence()?.locationDetails?.postalCode" /></dd>
             <dt>Timezone</dt>
             <dd>{{ present(intelligence()?.locationDetails?.timezone) }}</dd>
             <dt>UTC offset</dt>
@@ -309,7 +377,7 @@
               }}</span>
             </dd>
             <dt>Coordinates</dt>
-            <dd>{{ coordinates() }}</dd>
+            <dd><app-sensitive-value [value]="coordinates()" /></dd>
             <dt>Local time</dt>
             <dd>{{ present(intelligence()?.locationDetails?.localTime) }}</dd>
           </dl>
@@ -364,15 +432,33 @@
     <h2 id="addresses-title">IP addresses</h2>
     <div class="address-row">
       <div>
-        <span>IPv4</span><code>{{ ips()?.ipv4?.value?.address || 'Unavailable' }}</code>
+        <span>IPv4</span><code><app-sensitive-value [value]="ips()?.ipv4?.value?.address" /></code>
       </div>
-      <button class="copy" (click)="copy(ips()?.ipv4?.value?.address)">Copy</button>
+      <button
+        class="copy"
+        [disabled]="!privacy.sensitiveVisible()"
+        [attr.aria-label]="
+          privacy.sensitiveVisible() ? 'Copy IPv4 address' : 'Reveal sensitive information to copy'
+        "
+        (click)="copy(ips()?.ipv4?.value?.address)"
+      >
+        Copy
+      </button>
     </div>
     <div class="address-row">
       <div>
-        <span>IPv6</span><code>{{ ips()?.ipv6?.value?.address || 'Unavailable' }}</code>
+        <span>IPv6</span><code><app-sensitive-value [value]="ips()?.ipv6?.value?.address" /></code>
       </div>
-      <button class="copy" (click)="copy(ips()?.ipv6?.value?.address)">Copy</button>
+      <button
+        class="copy"
+        [disabled]="!privacy.sensitiveVisible()"
+        [attr.aria-label]="
+          privacy.sensitiveVisible() ? 'Copy IPv6 address' : 'Reveal sensitive information to copy'
+        "
+        (click)="copy(ips()?.ipv6?.value?.address)"
+      >
+        Copy
+      </button>
     </div>
   </section>
   <section class="card browser-privacy" aria-labelledby="privacy-title">
@@ -396,7 +482,7 @@
     @if (rtc()?.candidates?.length) {
       <ul>
         @for (candidate of rtc()?.candidates ?? []; track candidate.address + candidate.type) {
-          <li>{{ candidate.type }} · {{ candidate.address }}</li>
+          <li>{{ candidate.type }} · <app-sensitive-value [value]="candidate.address" /></li>
         }
       </ul>
     }
@@ -405,11 +491,11 @@
     <summary>Advanced technical details</summary>
     <p>
       Measurement server:
-      {{ speed.server()?.hostname || speed.server()?.endpoint || 'Available after a test' }}
+      <app-sensitive-value [value]="speed.server()?.hostname || speed.server()?.endpoint" />
     </p>
     <p>
       Address observed by measurement server:
-      {{ speed.server()?.observedClientAddress || 'Not available' }}
+      <app-sensitive-value [value]="speed.server()?.observedClientAddress" />
     </p>
     <p>
       Browser estimate: {{ network.info().downlink || 'Not exposed' }} Mbps ·

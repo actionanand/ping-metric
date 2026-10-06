@@ -1,0 +1,7 @@
+@if (value() === undefined || value() === null || value() === '') {
+  <span>Not available</span>
+} @else if (privacy.sensitiveVisible()) {
+  <span>{{ displayValue() }}</span>
+} @else {
+  <span class="mask" aria-label="Sensitive information hidden"><i></i><i></i><i></i></span>
+}

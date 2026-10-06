@@ -29,5 +29,13 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/about/about.component').then((m) => m.AboutComponent),
   },
+  {
+    path: 'network-guide',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/network-guide/network-guide.component').then(
+        (m) => m.NetworkGuideComponent,
+      ),
+  },
   { path: '**', redirectTo: '' },
 ];
