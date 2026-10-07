@@ -1,4 +1,9 @@
-import { TestBed, type ComponentFixture } from '@angular/core/testing';
+import {
+  DeferBlockBehavior,
+  DeferBlockState,
+  TestBed,
+  type ComponentFixture,
+} from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type {
@@ -20,6 +25,23 @@ import { PrivacyDisplayService } from '../../core/services/privacy-display.servi
 import { SpeedTestService } from '../../core/services/speed-test.service';
 import { WebRtcLeakService } from '../../core/services/webrtc-leak.service';
 import { DashboardComponent, providerStatusIcon } from './dashboard.component';
+import { GeoMapDataService } from '../../core/services/geo-map-data.service';
+
+// This suite checks dashboard integration, not canvas rendering. Keep the real
+// geographic exports/registration but do not require a native jsdom canvas.
+vi.mock('chart.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('chart.js')>();
+  return {
+    ...actual,
+    Chart: class {
+      static register = (...items: Parameters<typeof actual.Chart.register>) =>
+        actual.Chart.register(...items);
+      destroy = vi.fn();
+      resize = vi.fn();
+      update = vi.fn();
+    },
+  };
+});
 
 const addresses: IpAddresses = {
   default: {
@@ -64,6 +86,7 @@ async function createDashboardFixture(
   intelligenceEnabled = true,
 ): Promise<ComponentFixture<DashboardComponent>> {
   await TestBed.configureTestingModule({
+    deferBlockBehavior: DeferBlockBehavior.Manual,
     imports: [DashboardComponent],
     providers: [
       provideRouter([]),
@@ -89,6 +112,14 @@ async function createDashboardFixture(
       { provide: WebRtcLeakService, useValue: { test: vi.fn() } },
       IpIntelligencePreferenceService,
       PrivacyDisplayService,
+      {
+        provide: GeoMapDataService,
+        useValue: {
+          location: vi
+            .fn()
+            .mockResolvedValue({ mode: 'india', features: [], country: 'India', fallback: false }),
+        },
+      },
     ],
   }).compileComponents();
 
@@ -109,6 +140,35 @@ describe('Dashboard IP intelligence opt-in', () => {
     vi.unstubAllGlobals();
     TestBed.resetTestingModule();
     localStorage.removeItem(ipIntelligenceStorageKey);
+  });
+  it('defers geometry loading and passes only privacy-safe existing intelligence to the map', async () => {
+    const lookup = vi.fn().mockResolvedValue({
+      state: 'available',
+      providerMode: 'keyed',
+      value: {
+        ip: addresses.default.value?.address,
+        country: 'India',
+        countryCode: 'IN',
+        region: 'Karnataka',
+        security: emptySecurity,
+      },
+    });
+    const fixture = await createDashboardFixture(lookup);
+    const geometry = TestBed.inject(GeoMapDataService);
+    expect(geometry.location).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Loads when visible');
+    const blocks = await fixture.getDeferBlocks();
+    await blocks[0].render(DeferBlockState.Complete);
+    await fixture.whenStable();
+    expect(geometry.location).toHaveBeenLastCalledWith('IN', 'India', undefined);
+    TestBed.inject(PrivacyDisplayService).show();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(geometry.location).toHaveBeenLastCalledWith('IN', 'India', 'Karnataka');
+    expect(lookup).toHaveBeenCalledTimes(1);
+    fixture.componentInstance.setIntelligenceEnabled(false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-ip-location-map')).toBeNull();
   });
 
   it('does not let a response from an in-flight request restore intelligence after disable', async () => {
@@ -168,6 +228,8 @@ describe('Dashboard IP intelligence opt-in', () => {
     expect(fixture.nativeElement.textContent).toContain('ipapi.is is not being used');
     expect(lookup).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('app-ip-location-map')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Loads when visible');
 
     currentContext.updateNetwork({ ...addresses, protocol: 'Dual stack' }, networkInfo());
     TestBed.flushEffects();
@@ -189,6 +251,8 @@ describe('Dashboard IP intelligence opt-in', () => {
     expect(fixture.nativeElement.querySelectorAll('.network-facts dt')).toHaveLength(0);
     expect(fixture.nativeElement.querySelectorAll('.detail-group')).toHaveLength(0);
     expect(fixture.nativeElement.querySelectorAll('.security-row')).toHaveLength(0);
+    expect(fixture.nativeElement.querySelector('app-ip-location-map')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Loads when visible');
     expect(fixture.nativeElement.textContent).toContain(
       'Advanced security classifications are unavailable',
     );

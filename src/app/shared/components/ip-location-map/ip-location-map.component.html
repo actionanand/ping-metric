@@ -1,0 +1,50 @@
+<section class="location-card" aria-label="Approximate IP location">
+  <header>
+    <div>
+      <p class="kicker">Provider-reported geography</p>
+      <h2>Approximate IP location</h2>
+    </div>
+    <span class="approximate">Approximate</span>
+  </header>
+  <p class="location">{{ locationText() }}</p>
+  <div class="map-frame" [class.india]="map()?.mode === 'india'" [attr.aria-busy]="loading()">
+    <canvas #mapCanvas role="img" [attr.aria-label]="canvasDescription()" [hidden]="unavailable()">
+      {{ canvasDescription() }}
+    </canvas>
+    @if (loading()) {
+      <div class="placeholder" role="status">
+        <app-chart-loading-placeholder label="Loading location map" />
+        <span>Loading location map…</span>
+      </div>
+    }
+    @if (unavailable()) {
+      <p class="map-error" role="status">
+        Map unavailable. Your reported location is still shown above.
+      </p>
+    }
+  </div>
+  @if (!loading() && !unavailable()) {
+    <p class="selection">{{ selectionText() }}</p>
+    @if (map()?.fallback) {
+      <p class="note">India state/UT map unavailable · Showing India on the world map.</p>
+    }
+    @if (interactionAllowed()) {
+      <p class="note">Hover or tap a region to see its name.</p>
+    }
+  }
+  <p class="note">
+    IP location is approximate, not your device or GPS location. No precise pin is shown.
+  </p>
+  <footer>
+    @if (map()?.mode === 'india') {
+      <a
+        href="https://nwdp.nwic.gov.in/dataset/state-boundary"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Boundaries: Survey of India / NWDP</a
+      >
+    } @else {
+      <span>World boundaries: Natural Earth / world-atlas</span>
+    }
+  </footer>
+</section>

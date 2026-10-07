@@ -22,7 +22,11 @@ describe('NetNeutralityComponent', () => {
     fixture.detectChanges();
     const service = TestBed.inject(NetNeutralityService);
 
-    expect(fixture.nativeElement.textContent).toContain('Start Net Neutrality Check');
+    const startButton = fixture.nativeElement.querySelector(
+      '.start-panel button',
+    ) as HTMLButtonElement;
+    expect(startButton).not.toBeNull();
+    expect(startButton.textContent).toContain('Start check');
     expect(service.running()).toBe(false);
     expect(service.report()).toBeUndefined();
     expect(fetchMock).not.toHaveBeenCalled();

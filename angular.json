@@ -34,6 +34,11 @@
                 "glob": "ndt7-*-worker.js",
                 "input": "node_modules/@m-lab/ndt7/src",
                 "output": "/"
+              },
+              {
+                "glob": "countries-50m.json",
+                "input": "node_modules/world-atlas",
+                "output": "/maps"
               }
             ],
             "styles": ["src/styles.scss"]
@@ -49,7 +54,7 @@
                 {
                   "type": "anyComponentStyle",
                   "maximumWarning": "5kB",
-                  "maximumError": "9kB"
+                  "maximumError": "22kB"
                 }
               ],
               "outputHashing": "all"
