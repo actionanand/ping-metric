@@ -62,6 +62,9 @@ A browser cannot perform ICMP ping, read negotiated TLS details, identify a loca
 
 ## Further documentation
 
+- [Location maps](location-maps.md) documents runtime loading, matching, privacy, and validation.
+- [Choropleth, highlight maps, and heatmaps](choropleth-highlight-map-and-heatmap.md) explains the visualization choices.
+- [India map data preparation in WSL2](india-map-data-preparation-wsl2.md) records the official source, conversion, simplification, validation, and cleanup.
 - [IP intelligence modes](ip-intelligence-modes.md) explains disabled, keyed, anonymous, and anonymous-fallback behavior.
 - [Net Neutrality methodology](net-neutrality.md) documents the browser heuristic, thresholds, limitations, report, and PDF privacy options.
 

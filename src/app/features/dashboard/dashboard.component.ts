@@ -15,6 +15,7 @@ import { SpeedUnitService } from '../../core/services/speed-unit.service';
 import { SensitiveValueComponent } from '../../shared/components/sensitive-value/sensitive-value.component';
 import { LoadingIndicatorComponent } from '../../shared/components/loading-indicator/loading-indicator.component';
 import { ServerDiscoveryIndicatorComponent } from '../../shared/components/server-discovery-indicator/server-discovery-indicator.component';
+import { IpLocationMapComponent } from '../../shared/components/ip-location-map/ip-location-map.component';
 import type {
   IpAddresses,
   IpIntelligence,
@@ -45,6 +46,7 @@ export function providerStatusIcon(
     SensitiveValueComponent,
     LoadingIndicatorComponent,
     ServerDiscoveryIndicatorComponent,
+    IpLocationMapComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -313,6 +315,19 @@ export class DashboardComponent {
   }
   protected countryValue(): string | undefined {
     return this.intelligence()?.locationDetails?.country || this.intelligence()?.country;
+  }
+  protected readonly locationMapVisible = computed(
+    () =>
+      this.intelligencePreference.enabled() &&
+      !this.intelligenceLoading() &&
+      Boolean(
+        this.intelligence()?.locationDetails?.countryCode?.trim() ||
+        this.intelligence()?.countryCode?.trim() ||
+        this.countryValue()?.trim(),
+      ),
+  );
+  protected countryCodeValue(): string | undefined {
+    return this.intelligence()?.locationDetails?.countryCode || this.intelligence()?.countryCode;
   }
   protected providerDetailsAvailable(): boolean {
     const details = this.intelligence()?.companyDetails;

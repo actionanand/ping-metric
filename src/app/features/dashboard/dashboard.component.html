@@ -687,6 +687,18 @@
       <p class="muted">Provider could not be reached or returned no usable data</p>
     }
   </section>
+  @if (locationMapVisible()) {
+    @defer (on viewport) {
+      <app-ip-location-map
+        [countryCode]="countryCodeValue()"
+        [country]="countryValue()"
+        [region]="privacy.sensitiveVisible() ? regionValue() : undefined"
+        [regionHidden]="!privacy.sensitiveVisible()"
+      />
+    } @placeholder {
+      <p class="card">Approximate IP location map · Loads when visible.</p>
+    }
+  }
   <section class="card addresses" aria-labelledby="addresses-title">
     <h2 id="addresses-title">IP addresses</h2>
     <div class="address-row">
