@@ -135,6 +135,7 @@ describe('IpLocationMapComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Country could not be matched');
     const config = charts.create.mock.calls.at(-1)?.[1] as ChartConfiguration<'choropleth'>;
     expect(config.data.datasets[0].data.map((point) => point.value)).toEqual([0, 1]);
+    expect(config.plugins?.map((plugin) => plugin.id)).toContain('small-country-locator');
     const title = config.options?.plugins?.tooltip?.callbacks?.title;
     const label = config.options?.plugins?.tooltip?.callbacks?.label;
     if (!title || !label) throw new Error('Explicit tooltip callbacks required');
@@ -181,14 +182,20 @@ describe('IpLocationMapComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Map unavailable');
     expect(charts.create).not.toHaveBeenCalled();
   });
-  it('shows India with no selection for an unknown state', async () => {
-    const fixture = await createFixture(
-      async () => ({ mode: 'india', features: [karnataka], country: 'India', fallback: false }),
-      'IN',
-    );
-    expect(fixture.nativeElement.textContent).toContain('India detected · State/UT unavailable');
-    expect(charts.create).toHaveBeenCalledTimes(1);
-  });
+  it.each([undefined, 'Delhi NCR', 'NCR', 'National Capital Region'])(
+    'shows India with no selection for unavailable administrative region %s',
+    async (region) => {
+      const fixture = await createFixture(
+        async () => ({ mode: 'india', features: [karnataka], country: 'India', fallback: false }),
+        'IN',
+        region,
+      );
+      expect(fixture.nativeElement.textContent).toContain('India detected · State/UT unavailable');
+      expect(charts.create).toHaveBeenCalledTimes(1);
+      const config = charts.create.mock.calls.at(-1)?.[1] as ChartConfiguration<'choropleth'>;
+      expect(config.data.datasets[0].data.map((point) => point.value)).toEqual([0]);
+    },
+  );
   it('does not pass a masked region to geometry resolution', async () => {
     const fixture = await createFixture(
       async () => ({

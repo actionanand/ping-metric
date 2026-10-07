@@ -41,6 +41,8 @@ const india = [
   'Karnataka',
   'Tamil Nadu',
   'Delhi',
+  'Haryana',
+  'Uttar Pradesh',
   'Puducherry',
   'Odisha',
   'Uttarakhand',
@@ -85,6 +87,7 @@ describe('geographic matching', () => {
   it.each([
     ['Karnataka', 'Karnataka'],
     ['Tamilnadu', 'Tamil Nadu'],
+    ['Delhi', 'Delhi'],
     ['NCT of Delhi', 'Delhi'],
     ['National Capital Territory of Delhi', 'Delhi'],
     ['Delhi NCT', 'Delhi'],
@@ -105,6 +108,12 @@ describe('geographic matching', () => {
     expect(matchIndiaRegion(india)).toBeUndefined();
     expect(normalizeGeography(' Jammu  & Kashmir ')).toBe('jammu and kashmir');
   });
+  it.each(['Delhi NCR', 'NCR', 'National Capital Region'])(
+    'does not treat the multi-state region %s as Delhi',
+    (region) => {
+      expect(matchIndiaRegion(india, region)).toBeUndefined();
+    },
+  );
   it('adapts exterior/hole winding for rendering without mutating the input feature', () => {
     const exterior = [
       [70, 10],
@@ -241,6 +250,11 @@ describe('GeoMapDataService', () => {
     ['Lakshadweep', 'Lakshadweep'],
     ['Arunachal Pradesh', 'Arunanchal Pradesh'],
     ['NCT of Delhi', 'Delhi'],
+    ['National Capital Territory of Delhi', 'Delhi'],
+    ['Delhi NCT', 'Delhi'],
+    ['Delhi', 'Delhi'],
+    ['Haryana', 'Haryana'],
+    ['Uttar Pradesh', 'Uttar Pradesh'],
     ['Jammu and Kashmir', 'Jammu & Kashmir'],
     ['Andaman and Nicobar Islands', 'Andaman & Nicobar Island'],
     ['Dadra and Nagar Haveli and Daman and Diu', 'Dadra & Nagar Havelli and Daman & Diu'],
@@ -253,6 +267,20 @@ describe('GeoMapDataService', () => {
     expect(result.selected?.properties['state_name']).toBe(selected);
     expect(worldLoad).not.toHaveBeenCalled();
   });
+  it.each(['Delhi NCR', 'NCR', 'National Capital Region'])(
+    'keeps India unselected for %s without falling back to the world map',
+    async (region) => {
+      const service = TestBed.inject(GeoMapDataService);
+      vi.spyOn(service, 'india').mockResolvedValue(india);
+      const worldLoad = vi.spyOn(service, 'world');
+      expect(await service.location('IN', 'India', region)).toMatchObject({
+        mode: 'india',
+        selected: undefined,
+        fallback: false,
+      });
+      expect(worldLoad).not.toHaveBeenCalled();
+    },
+  );
   it('falls back to a world India selection after an India asset failure', async () => {
     const service = TestBed.inject(GeoMapDataService);
     vi.spyOn(service, 'india').mockRejectedValue(new Error('Unavailable'));

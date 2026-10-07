@@ -19,6 +19,7 @@ import type { LocationMapData } from '../../../core/services/geo-map-data.servic
 import { ThemeService } from '../../../core/services/theme.service';
 import { ChartLoadingPlaceholderComponent } from '../chart-loading-placeholder/chart-loading-placeholder.component';
 import { tooltipFeatureName } from './ip-location-map-tooltip';
+import { createCountryLocatorPlugin } from './country-locator';
 
 Chart.register(ChoroplethController, GeoFeature, ColorScale, ProjectionScale, Tooltip);
 
@@ -133,6 +134,14 @@ export class IpLocationMapComponent implements OnDestroy {
         const surface = css.getPropertyValue('--surface').trim();
         this.chart = new Chart(canvas, {
           type: 'choropleth',
+          plugins: [
+            createCountryLocatorPlugin({
+              mode: map.mode,
+              feature: selected,
+              accent,
+              contrast: surface,
+            }),
+          ],
           data: {
             labels: map.features.map((feature) =>
               interactionAllowed ? featureName(feature, map.mode) : 'State/UT details hidden',

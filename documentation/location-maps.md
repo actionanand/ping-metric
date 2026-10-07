@@ -58,9 +58,15 @@ and offers better small-country coverage than 110m while remaining a deferred
 static asset (756,420 bytes). Unavailable boundaries remain unselected, never
 replaced by neighbours; the message says “Country boundary unavailable” rather
 than implying that IP intelligence failed. Very small polygons can still be
-hard to see at full-world scale: the selected polygon uses an accent-colored
-thicker border, not a fake coordinate marker. Browser visibility needs manual
-verification at the device's actual display size.
+hard to see at full-world scale. The real polygon keeps its accent fill and border.
+A chart-local minimum-visibility locator draws a static, unfilled 7px-radius halo
+only when the selected country's entire projected geometry is smaller than 10px
+in both dimensions. Its center comes from projected country bounds using the
+renderer's fitted projection, recalculated after drawing/resizing. It is not an
+IP-coordinate/device-location pin and uses no provider coordinates. No halo is
+drawn for India state/UT maps, absent selections, or sufficiently large countries.
+It adds no tooltip target or dataset; existing polygon tooltips remain unchanged.
+Browser visibility needs manual verification at the device's actual display size.
 
 Indian normalization trims/collapses whitespace, lowercases, normalizes safe
 punctuation and treats ampersands as “and”. Explicit aliases:
