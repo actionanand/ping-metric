@@ -1,5 +1,7 @@
 <main class="page">
-  <a routerLink="/">← Dashboard</a>
+  <a class="dashboard-back-link" routerLink="/">
+    <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Dashboard
+  </a>
   <p class="eyebrow">Network Guide</p>
   <h1>Understand your connection</h1>
   <p>Plain-language help for the measurements and network details shown by PingMetric.</p>
@@ -96,6 +98,24 @@
         Jitter is latency variation. 20, 21, 19, 20 ms is stable; 20, 80, 25, 110 ms is not.
         PingMetric uses the average absolute difference between consecutive HTTP/application
         samples. It matters for VoIP, video, games, streaming and remote control.
+      </p>
+    </details>
+    <details id="median-absolute-deviation">
+      <summary>Variation (MAD)</summary>
+      <p>
+        <strong>MAD</strong> means Median Absolute Deviation. For each service in the Net Neutrality
+        Check, PingMetric finds the median successful response time, then takes the median distance
+        of each successful result from that value. It is shown in milliseconds.
+      </p>
+      <p>
+        A lower MAD means the successful timings were more consistent. A higher MAD means they were
+        more spread out or variable. Unlike an average-based spread measure, MAD is less affected by
+        one unusually slow response, which makes it useful for a small set of browser measurements.
+      </p>
+      <p>
+        MAD describes consistency only; it does not determine whether a service was treated
+        differently. PingMetric's classification also considers the median response time, repeated
+        slow samples, and the configured thresholds.
       </p>
     </details>
     <details>

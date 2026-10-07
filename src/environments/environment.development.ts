@@ -19,6 +19,7 @@ export const environment: AppEnvironment = {
     attempts: 5,
     timeoutMs: 5000,
   },
+  history: { maxEntries: 13 },
   webrtc: { stunUrls: ['stun:stun.l.google.com:19302'] },
   neutrality: {
     attempts: 5,

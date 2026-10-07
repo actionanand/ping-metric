@@ -1,0 +1,106 @@
+:host {
+  display: inline-flex;
+  line-height: 1;
+}
+.loading-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.loading-indicator.with-copy {
+  flex-direction: column;
+  gap: 0.55rem;
+  text-align: center;
+}
+.loading-indicator strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.loading-indicator small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+.spinner,
+.spinner::before {
+  display: inline-block;
+  border: calc(20 * var(--loader-size, 0.45px)) double transparent;
+  border-top-color: var(--loader-color, currentColor);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+.spinner {
+  display: block;
+  flex: 0 0 auto;
+  position: relative;
+  width: 0;
+  height: 0;
+  padding: calc(8 * var(--loader-size));
+  font-size: 0;
+  line-height: 0;
+  transform-origin: center;
+  will-change: transform, opacity;
+  animation: wifi-loading 1.25s cubic-bezier(0.2, 0.7, 0.25, 1) infinite;
+}
+.spinner::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  line-height: 0;
+  transform-origin: center;
+  will-change: transform, opacity;
+  animation: wifi-core 1.25s cubic-bezier(0.2, 0.7, 0.25, 1) infinite;
+}
+@keyframes wifi-loading {
+  0% {
+    border-style: double;
+    opacity: 0.2;
+    transform: scale(0.58);
+  }
+  42% {
+    border-style: double;
+    opacity: 1;
+    transform: scale(1);
+  }
+  68% {
+    border-style: double;
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+  100% {
+    border-style: double;
+    opacity: 0.16;
+    transform: scale(1.26);
+  }
+}
+@keyframes wifi-core {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  52% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.55);
+  }
+}
+/* This is an active-operation indicator, not decorative motion. It remains animated
+   even when the app suppresses decorative transitions globally, so work-in-progress
+   is never mistaken for a static status icon. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: wifi-loading 1.25s cubic-bezier(0.2, 0.7, 0.25, 1) infinite !important;
+  }
+  .spinner::before {
+    animation: wifi-core 1.25s cubic-bezier(0.2, 0.7, 0.25, 1) infinite !important;
+  }
+}

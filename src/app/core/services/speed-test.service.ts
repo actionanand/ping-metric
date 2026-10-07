@@ -33,6 +33,7 @@ export class SpeedTestService {
   private readonly uploadState = signal<SpeedDirectionResult>({});
   private readonly serverState = signal<ServerInfo | undefined>(undefined);
   private readonly latencyState = signal<LatencyResult | undefined>(undefined);
+  private runGeneration = 0;
   readonly phase = this.phaseState.asReadonly();
   readonly download = this.downloadState.asReadonly();
   readonly upload = this.uploadState.asReadonly();
@@ -59,18 +60,21 @@ export class SpeedTestService {
 
   async run(): Promise<SpeedTestResult | undefined> {
     if (!canStartMeasurement(this.phaseState())) return undefined;
+    const runGeneration = ++this.runGeneration;
     this.resetMeasurement();
     this.phaseState.set('preparing');
     // Yield once so the UI can render the preparing state before asynchronous work begins.
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     this.phaseState.set('measuring-latency');
     const latency = await this.latencyService.measure();
+    if (!this.isCurrentRun(runGeneration)) return undefined;
     this.latencyState.set(latency.value);
     this.latencyError.set(latency.message);
     // Latency is optional. Its failure must never prevent the bandwidth measurement.
     this.phaseState.set('finding-server');
     try {
-      const code = await ndt7.test(this.config(), this.callbacks());
+      const code = await ndt7.test(this.config(), this.callbacks(runGeneration));
+      if (!this.isCurrentRun(runGeneration)) return undefined;
       if (code !== 0 || this.error())
         throw new Error(this.error() ?? 'M-Lab measurement did not complete.');
       this.phaseState.set('finalizing');
@@ -86,10 +90,18 @@ export class SpeedTestService {
       this.phaseState.set('complete');
       return result;
     } catch (error: unknown) {
+      if (!this.isCurrentRun(runGeneration)) return undefined;
       this.error.set(error instanceof Error ? error.message : 'M-Lab speed test failed.');
       this.phaseState.set('failed');
       return undefined;
     }
+  }
+
+  cancel(): void {
+    if (!this.isRunning()) return;
+    this.runGeneration++;
+    this.resetMeasurement();
+    this.phaseState.set('cancelled');
   }
 
   private resetMeasurement(): void {
@@ -111,27 +123,48 @@ export class SpeedTestService {
       uploadworkerfile: new URL('ndt7-upload-worker.js', document.baseURI).toString(),
     };
   }
-  private callbacks() {
+  private callbacks(runGeneration: number) {
     return {
-      error: (error: string | Error) => this.error.set(this.describeError(error)),
-      serverDiscovery: () => this.phaseState.set('finding-server'),
-      serverChosen: (data: unknown) =>
-        this.serverState.update((current) => mergeServer(current, serverFromLocate(data))),
-      downloadStart: () => this.phaseState.set('download'),
-      uploadStart: () => this.phaseState.set('upload'),
-      downloadMeasurement: (event: { Source: MeasurementSource; Data: unknown }) =>
-        this.applyMeasurement('download', event.Source, event.Data),
-      uploadMeasurement: (event: { Source: MeasurementSource; Data: unknown }) =>
-        this.applyMeasurement('upload', event.Source, event.Data),
+      error: (error: string | Error) => {
+        if (this.isCurrentRun(runGeneration)) this.error.set(this.describeError(error));
+      },
+      serverDiscovery: () => {
+        if (this.isCurrentRun(runGeneration)) this.phaseState.set('finding-server');
+      },
+      serverChosen: (data: unknown) => {
+        if (this.isCurrentRun(runGeneration))
+          this.serverState.update((current) => mergeServer(current, serverFromLocate(data)));
+      },
+      downloadStart: () => {
+        if (this.isCurrentRun(runGeneration)) this.phaseState.set('download');
+      },
+      uploadStart: () => {
+        if (this.isCurrentRun(runGeneration)) this.phaseState.set('upload');
+      },
+      downloadMeasurement: (event: { Source: MeasurementSource; Data: unknown }) => {
+        if (this.isCurrentRun(runGeneration))
+          this.applyMeasurement('download', event.Source, event.Data);
+      },
+      uploadMeasurement: (event: { Source: MeasurementSource; Data: unknown }) => {
+        if (this.isCurrentRun(runGeneration))
+          this.applyMeasurement('upload', event.Source, event.Data);
+      },
       downloadComplete: (event: {
         LastClientMeasurement?: unknown;
         LastServerMeasurement?: unknown;
-      }) => this.completeMeasurement('download', event),
+      }) => {
+        if (this.isCurrentRun(runGeneration)) this.completeMeasurement('download', event);
+      },
       uploadComplete: (event: {
         LastClientMeasurement?: unknown;
         LastServerMeasurement?: unknown;
-      }) => this.completeMeasurement('upload', event),
+      }) => {
+        if (this.isCurrentRun(runGeneration)) this.completeMeasurement('upload', event);
+      },
     };
+  }
+  private isCurrentRun(runGeneration: number): boolean {
+    return runGeneration === this.runGeneration;
   }
   private applyMeasurement(
     direction: 'download' | 'upload',
