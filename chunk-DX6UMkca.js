@@ -1,0 +1,1 @@
+import{m as Ol,q as on,w as Uo}from"./main-FZY2SLEB.js";var n=class e{preference=Uo(localStorage.getItem(`ping-metric.theme`)||`system`);constructor(){Ol(()=>{let t=this.preference();localStorage.setItem(`ping-metric.theme`,t),document.documentElement.dataset.theme=t})}static ɵfac=function(m){return new(m||e)};static ɵprov=on({token:e,factory:e.ɵfac})};export{n as t};
