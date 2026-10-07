@@ -85,6 +85,13 @@ export const GUIDE_TERMS: readonly GuideTerm[] = [
     description: 'How much response time changes between samples.',
   },
   {
+    term: 'MAD',
+    title: 'Median Absolute Deviation',
+    anchor: 'median-absolute-deviation',
+    aliases: ['variation', 'median variation', 'robust spread'],
+    description: 'A robust measure of how far successful timings typically sit from their median.',
+  },
+  {
     term: 'RTT',
     title: 'Round-Trip Time',
     anchor: 'rtt',

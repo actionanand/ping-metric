@@ -225,6 +225,9 @@ export class DashboardComponent {
       this.history.add(saved);
     }
   }
+  cancelSpeedTest(): void {
+    this.speed.cancel();
+  }
   async testWebRtc(): Promise<void> {
     if (this.webRtcLoading()) return;
     this.webRtcLoading.set(true);

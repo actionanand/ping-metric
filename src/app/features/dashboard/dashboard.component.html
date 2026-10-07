@@ -137,30 +137,43 @@
       </p>
       <p>Measure end-to-end performance and review browser-visible network information.</p>
     </div>
-    <button
-      class="primary test icon-button"
-      [disabled]="!network.info().online || speed.isRunning()"
-      (click)="requestTest()"
-    >
-      <span
-        class="material-symbols-rounded"
-        [class.loading-icon]="speed.isRunning()"
-        aria-hidden="true"
+    <div class="test-actions">
+      <button
+        class="primary test icon-button"
+        [disabled]="!network.info().online || speed.isRunning()"
+        (click)="requestTest()"
+      >
+        <span
+          class="material-symbols-rounded"
+          [class.loading-icon]="speed.isRunning()"
+          aria-hidden="true"
+          >{{
+            speed.isRunning()
+              ? 'progress_activity'
+              : speed.phase() === 'complete'
+                ? 'refresh'
+                : 'speed'
+          }}</span
         >{{
           speed.isRunning()
-            ? 'progress_activity'
+            ? 'Starting test…'
             : speed.phase() === 'complete'
-              ? 'refresh'
-              : 'speed'
-        }}</span
-      >{{
-        speed.isRunning()
-          ? 'Starting test…'
-          : speed.phase() === 'complete'
-            ? 'Test again'
-            : 'Start test'
-      }}
-    </button>
+              ? 'Test again'
+              : 'Start test'
+        }}
+      </button>
+      @if (speed.isRunning()) {
+        <button
+          class="cancel-test"
+          type="button"
+          (click)="cancelSpeedTest()"
+          aria-label="Cancel speed test"
+          title="Cancel speed test"
+        >
+          <span class="material-symbols-rounded" aria-hidden="true">close</span>
+        </button>
+      }
+    </div>
   </section>
   @if (showDisclosure()) {
     <section class="disclosure" role="dialog" aria-labelledby="disclosure-title">
